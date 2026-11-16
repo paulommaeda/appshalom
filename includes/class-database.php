@@ -157,6 +157,19 @@ KEY departamento_ativo (departamento_id,ativo)",
                 if ($wpdb->last_error !== '' || array_diff($matches[1], $columns)) {
                     return self::install_error();
                 }
+                $actual = $wpdb->get_results($wpdb->prepare('SHOW INDEX FROM %i', $table), ARRAY_A);
+                if ($wpdb->last_error !== '') {
+                    return self::install_error();
+                }
+                preg_match_all('/^(UNIQUE )?KEY ([a-z0-9_]+) \(([^)]+)\)/m', $sql, $keys, PREG_SET_ORDER);
+                $keys[] = ['PRIMARY KEY', 'UNIQUE ', 'PRIMARY', 'id'];
+                foreach ($keys as $key) {
+                    $rows = array_values(array_filter($actual, static fn ($row) => $row['Key_name'] === $key[2]));
+                    usort($rows, static fn ($a, $b) => (int) $a['Seq_in_index'] <=> (int) $b['Seq_in_index']);
+                    if (array_column($rows, 'Column_name') !== explode(',', $key[3]) || !$rows || (int) $rows[0]['Non_unique'] !== ($key[1] ? 0 : 1)) {
+                        return self::install_error();
+                    }
+                }
             }
             update_option('igreja_erp_core_db_version', IGREJA_ERP_CORE_DB_VERSION, false);
             delete_option('igreja_erp_core_install_error');

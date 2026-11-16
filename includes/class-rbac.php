@@ -147,7 +147,10 @@ final class RBAC
         if (!$user_id) {
             return new \WP_Error('igreja_erp_nao_autenticado', 'Entre na sua conta para continuar.', ['status' => 401]);
         }
-        $nonce = $request->get_header('X-WP-Nonce') ?: $request->get_param('_wpnonce');
+        $nonce = $request->get_header('X-WP-Nonce');
+        if ($nonce === null || $nonce === '') {
+            $nonce = $request->get_param('_wpnonce');
+        }
         if ($nonce !== null && $nonce !== '' && (!is_string($nonce) || !wp_verify_nonce($nonce, 'wp_rest'))) {
             return new \WP_Error('igreja_erp_nonce_invalido', 'A sessão expirou. Atualize a página e tente novamente.', ['status' => 403]);
         }

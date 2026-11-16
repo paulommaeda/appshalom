@@ -75,6 +75,17 @@ erp_expect(is_wp_error(Database::install()), 'Concorrência bloqueada');
 update_option('igreja_erp_core_migration_lock', time() - 301);
 erp_expect(Database::install() === true, 'Trava expirada recuperada');
 
+$wpdb->query($wpdb->prepare('ALTER TABLE %i DROP INDEX cpf', Database::table('membros')));
+$duplicate = erp_insert('membros', ['nome_completo' => 'Duplicado legado', 'cpf' => '12345678901']);
+update_option('igreja_erp_core_db_version', '0.9.0');
+$previous = $wpdb->suppress_errors(true);
+$failed = Database::install();
+$wpdb->suppress_errors($previous);
+erp_expect(is_wp_error($failed) && get_option('igreja_erp_core_db_version') === '0.9.0', 'Índice único incompleto não conclui migração');
+$wpdb->delete(Database::table('membros'), ['id' => $duplicate], ['%d']);
+delete_option('igreja_erp_core_migration_retry_after');
+erp_expect(Database::maybe_upgrade(), 'Índice único restaurado após corrigir dado legado');
+
 foreach (RBAC::role_definitions() as $slug => $definition) {
     erp_expect(get_role($slug) !== null, 'Perfil existe ' . $slug);
 }
@@ -140,6 +151,8 @@ $request->set_url_params(['id' => $a]);
 erp_expect(RBAC::rest_permission_check($request, 'gerenciar_equipe') === true, 'Rota da própria equipe autorizada');
 $request->set_header('X-WP-Nonce', 'invalido');
 erp_expect(is_wp_error(RBAC::rest_permission_check($request, 'gerenciar_equipe')), 'Nonce inválido negado');
+$request->set_header('X-WP-Nonce', '0');
+erp_expect(is_wp_error(RBAC::rest_permission_check($request, 'gerenciar_equipe')), 'Nonce zero rejeitado');
 $request->set_header('X-WP-Nonce', wp_create_nonce('wp_rest'));
 erp_expect(RBAC::rest_permission_check($request, 'gerenciar_equipe') === true, 'Nonce válido aceito');
 $request->set_url_params(['id' => '-1']);
@@ -221,7 +234,7 @@ $skin = new Automatic_Upgrader_Skin();
 $upgrader = new Plugin_Upgrader($skin);
 $result = $upgrader->upgrade($plugin);
 remove_filter('upgrader_pre_download', $download);
-erp_expect($result === true, 'Plugin_Upgrader instala ZIP: ' . wp_json_encode($skin->get_errors()->get_error_messages()));
+erp_expect($result === true, 'Plugin_Upgrader instala ZIP: ' . (is_wp_error($result) ? $result->get_error_message() : var_export($result, true)));
 wp_clean_plugins_cache(true);
 $installed = get_plugin_data(IGREJA_ERP_CORE_FILE, false, false);
 erp_expect($installed['Version'] === '0.1.0', 'Arquivo atualizado para versão nova');
