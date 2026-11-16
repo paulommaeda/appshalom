@@ -23,6 +23,7 @@ igreja_check((bool) preg_match('/^[a-f0-9-]{36}$/D', Settings::tenant_id()), 'Id
 $tenant = Settings::tenant_id();
 $custom = Settings::sanitize(['nome_curto' => 'Comunidade de Teste', 'cor_primaria' => '#123456']);
 update_option(Settings::OPTION, $custom);
+delete_option('igreja_erp_settings_version');
 Settings::initialize();
 igreja_check(Settings::get('nome_curto') === 'Comunidade de Teste', 'Inicialização preserva personalização');
 igreja_check(Settings::tenant_id() === $tenant, 'Identificador preservado');

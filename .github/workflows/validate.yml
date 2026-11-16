@@ -70,6 +70,8 @@ jobs:
           else
             php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url=http://127.0.0.1:8080 --title="Igreja ERP Test" --admin_user=tests --admin_password=igreja_erp_disposable_test --admin_email=test@example.org --skip-email --quiet
           fi
+          php "$RUNNER_TEMP/wp-cli.phar" option update siteurl http://127.0.0.1:8080 --path="$RUNNER_TEMP/wordpress" --quiet
+          php "$RUNNER_TEMP/wp-cli.phar" option update home http://127.0.0.1:8080 --path="$RUNNER_TEMP/wordpress" --quiet
           version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
           php "$RUNNER_TEMP/wp-cli.phar" plugin install "$GITHUB_WORKSPACE/dist/igreja-erp-core-$version.zip" --path="$RUNNER_TEMP/wordpress"
           if [ "$IGREJA_MULTISITE" = "1" ]; then
