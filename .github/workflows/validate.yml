@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   integration:
-    name: PHP ${{ matrix.php }} / WordPress ${{ matrix.wordpress }}
+    name: PHP ${{ matrix.php }} / WP ${{ matrix.wordpress }} / rede=${{ matrix.multisite }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -18,8 +18,13 @@ jobs:
         include:
           - php: '8.1'
             wordpress: '6.5.5'
+            multisite: '0'
           - php: '8.3'
             wordpress: 'latest'
+            multisite: '0'
+          - php: '8.3'
+            wordpress: 'latest'
+            multisite: '1'
     services:
       mysql:
         image: mysql:8.0
@@ -36,6 +41,7 @@ jobs:
     env:
       IGREJA_ERP_TEST_ENV: '1'
       WP_VERSION: ${{ matrix.wordpress }}
+      IGREJA_MULTISITE: ${{ matrix.multisite }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
@@ -58,11 +64,35 @@ jobs:
           mkdir "$RUNNER_TEMP/wordpress"
           php "$RUNNER_TEMP/wp-cli.phar" core download --path="$RUNNER_TEMP/wordpress" --version="$WP_VERSION" --quiet
           php "$RUNNER_TEMP/wp-cli.phar" config create --path="$RUNNER_TEMP/wordpress" --dbname=igreja_erp_test --dbuser=root --dbpass=igreja_erp_test --dbhost=127.0.0.1:3306 --dbprefix=shalom_test_ --quiet
-          php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url=http://localhost --title="Igreja ERP Test" --admin_user=tests --admin_password=igreja_erp_disposable_test --admin_email=test@example.org --skip-email --quiet
+          php "$RUNNER_TEMP/wp-cli.phar" config set WP_ENVIRONMENT_TYPE local --path="$RUNNER_TEMP/wordpress" --quiet
+          if [ "$IGREJA_MULTISITE" = "1" ]; then
+            php "$RUNNER_TEMP/wp-cli.phar" core multisite-install --path="$RUNNER_TEMP/wordpress" --url=http://127.0.0.1:8080 --title="Igreja ERP Test" --admin_user=tests --admin_password=igreja_erp_disposable_test --admin_email=test@example.org --skip-email --quiet
+          else
+            php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url=http://127.0.0.1:8080 --title="Igreja ERP Test" --admin_user=tests --admin_password=igreja_erp_disposable_test --admin_email=test@example.org --skip-email --quiet
+          fi
           version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
-          php "$RUNNER_TEMP/wp-cli.phar" plugin install "$GITHUB_WORKSPACE/dist/igreja-erp-core-$version.zip" --path="$RUNNER_TEMP/wordpress" --activate
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install "$GITHUB_WORKSPACE/dist/igreja-erp-core-$version.zip" --path="$RUNNER_TEMP/wordpress"
+          if [ "$IGREJA_MULTISITE" = "1" ]; then
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-core --network --path="$RUNNER_TEMP/wordpress"
+          else
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-core --path="$RUNNER_TEMP/wordpress"
+          fi
       - name: Testar migrações, RBAC, REST e atualização nativa
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Testar configurações e isolamento por igreja
+        run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/settings.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Preparar navegador e servidor local
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --ignore-scripts --no-audit --no-fund @playwright/test@1.65.1
+          node "$RUNNER_TEMP/browser/node_modules/@playwright/test/cli.js" install --with-deps chromium
+          php -S 127.0.0.1:8080 -t "$RUNNER_TEMP/wordpress" "$GITHUB_WORKSPACE/tests/router.php" >"$RUNNER_TEMP/wordpress-http.log" 2>&1 &
+      - name: Testar acesso restrito e configurações no navegador
+        env:
+          IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
+        run: node tests/branding.browser.cjs
+      - name: Mostrar diagnóstico HTTP em caso de falha
+        if: failure()
+        run: tail -n 80 "$RUNNER_TEMP/wordpress-http.log" || true
       - name: Confirmar inicialização após atualização
         run: |
           php "$RUNNER_TEMP/wp-cli.phar" plugin is-active igreja-erp-core --path="$RUNNER_TEMP/wordpress"

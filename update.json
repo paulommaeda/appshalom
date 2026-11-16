@@ -1,12 +1,12 @@
 {
   "name": "Igreja ERP Core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "requires": "6.5",
   "requires_php": "8.1",
-  "download_url": "https://github.com/paulommaeda/appshalom/releases/download/v0.1.0/igreja-erp-core-0.1.0.zip",
+  "download_url": "https://github.com/paulommaeda/appshalom/releases/download/v0.2.0/igreja-erp-core-0.2.0.zip",
   "sections": {
-    "description": "<p>App Shalom — Etapa 1: bootstrap, cinco tabelas, sete perfis, controle de acesso contextual e atualização nativa do WordPress.</p><p>Serviços, portal e integrações serão entregues nas próximas etapas.</p>",
-    "installation": "<p>Instale o ZIP da release em Plugins → Adicionar plugin → Enviar plugin e ative. Requer WordPress 6.5+ e PHP 8.1+.</p>",
-    "changelog": "<h4>0.1.0 — Etapa 1</h4><ul><li>Bootstrap e autoloader.</li><li>Banco e migrações.</li><li>RBAC e callback REST.</li><li>Atualizações pelo WordPress.</li></ul>"
+    "description": "<p>Core do App Shalom com configurações próprias por igreja: nome, logo, cores e contato. Ao ativar, páginas e APIs exigem autenticação.</p><p>Configuração inicial com a identidade da CCShalom Curitiba; personalizável no painel Igreja ERP.</p>",
+    "installation": "<p>Instale o ZIP da release em Plugins → Adicionar plugin → Enviar plugin. Ao ativar, o site passa a exigir login. Personalize em Igreja ERP → Configurações.</p><p>Respostas do WordPress são protegidas pelo Core; arquivos estáticos e cache externo requerem proteção no servidor.</p>",
+    "changelog": "<h4>0.2.0</h4><ul><li>Configurações de identidade e contato por igreja.</li><li>Nome, logo e cores da CCShalom Curitiba como configuração inicial.</li><li>Acesso restrito por padrão em páginas, feeds, REST e chamadas anônimas do WordPress.</li><li>Isolamento por site no Multisite e validação de vínculo da conta.</li><li>Tela de entrada com identidade visual e recuperação de senha nativa.</li><li>Atualizações preservam a personalização da igreja.</li></ul>"
   }
 }

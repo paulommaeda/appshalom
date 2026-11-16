@@ -2,38 +2,73 @@
 
 Repositório: https://github.com/paulommaeda/appshalom
 
-## Etapa 1 — versão 0.1.0
+## Versão 0.2.0 — Identidade por igreja e acesso restrito
 
-Primeira das quatro etapas da especificação recebida:
+O Core entrega banco, permissões, atualização WordPress e, agora, configurações próprias da igreja. Esta versão antecipa a configuração institucional para preparar o produto como SaaS, antes de concluir as próximas etapas funcionais.
 
-- igreja-erp-core.php: bootstrap, constantes, autoloader e hook igreja_erp_core_loaded em plugins_loaded, prioridade 5.
-- includes/class-database.php: cinco tabelas, dbDelta, índices, migração não destrutiva e esquema 1.0.0.
-- includes/class-rbac.php: sete papéis ERP, capabilities e autorização contextual, com callback de permissão REST.
-- includes/class-updater.php: atualização nativa pelo WordPress usando as versões deste GitHub.
+### Configurações da igreja
 
-As classes usam o namespace IgrejaERP\Core. O autoloader utiliza um mapa explícito para preservar os nomes class-*.php da estrutura solicitada sem depender de Composer.
+Em **Igreja ERP → Configurações**, administradores WordPress e o perfil ERP Administração pastoral podem editar:
 
-**Esta versão entrega a infraestrutura inicial.** Serviços, cadastros, portal, shortcode, endpoints, seed, PWA instalável, PDF e WhatsApp pertencem às etapas seguintes.
+- Nome completo e nome de apresentação.
+- Logo por upload na biblioteca ou URL.
+- Cores principal, destaque, fundo e texto, com prévia ao vivo.
+- Mensagem da tela de entrada.
+- Site, e-mail, telefone e endereço.
+- Opção de acesso restrito, habilitada por padrão.
 
-## Instalação e atualizações
+A primeira configuração usa **CCShalom Curitiba**, com azul #000A52, azul #001BE1 e branco, conforme o guia de identidade fornecido. A logo inicial utiliza a imagem do site oficial em https://ccshalom.com.br/curitiba/wp-content/uploads/sites/3/2024/09/logo-rodape.png. Nome, contato e endereço foram conferidos no site oficial da igreja. CEP não confirmado permanece vazio.
 
-Requer WordPress 6.5+, PHP 8.1+ e banco MySQL/MariaDB compatível com WordPress, com permissão para criar e alterar tabelas.
+O login recebe a identidade configurada. Autenticação e recuperação de senha permanecem nativas do WordPress. Montserrat é incluída localmente com sua licença SIL OFL.
 
-1. Em Releases, baixe igreja-erp-core-0.1.0.zip.
+Atualizações e reativações preservam os dados e a opção de acesso escolhidos pela igreja.
+
+## Instalação e atualização
+
+Requer **WordPress 6.5+**, **PHP 8.1+** e MySQL/MariaDB compatível com WordPress.
+
+1. Baixe o ZIP instalável em Releases.
 2. Use Plugins → Adicionar plugin → Enviar plugin e ative Igreja ERP Core.
-3. As tabelas e perfis são preparados automaticamente. Não há tela de portal nesta etapa.
-4. Para versões futuras, use Painel → Atualizações ou o link Verificar atualizações na linha do plugin.
-5. A instalação automática pode ser ativada pelo controle nativo de atualizações automáticas do WordPress.
+3. O site passa a exigir login e as configurações iniciais são preparadas.
+4. Personalize em Igreja ERP → Configurações.
+5. Para novas versões, use Painel → Atualizações ou Verificar atualizações na linha do plugin.
 
-O ZIP da release usa a pasta raiz igreja-erp-core/, necessária para o cabeçalho Requires Plugins: igreja-erp-core dos add-ons. Instale pelo pacote da release: o Download ZIP do repositório usa outro nome de pasta.
+A atualização 0.1.0 → 0.2.0 também prepara as configurações e habilita o acesso restrito em instalações ainda sem essas configurações.
 
-O atualizador consulta main/update.json por HTTPS, mantém cache de uma hora e aceita apenas ZIPs versionados das releases deste repositório público. Não precisa de token GitHub. A verificação manual exige permissão update_plugins e nonce e limpa o cache antes de consultar.
+Use o ZIP da release, que contém a pasta igreja-erp-core/. O Download ZIP do repositório usa outro nome de pasta, incompatível com o slug esperado pelos add-ons.
 
-Desativar ou excluir arquivos preserva dados e perfis. A ativação em rede prepara os sites existentes; novos sites também são preparados se o Core estiver ativo na rede.
+O atualizador consulta main/update.json por HTTPS e aceita pacotes versionados das releases deste repositório público. Não precisa de token GitHub. O controle nativo do WordPress permite habilitar instalação automática. A verificação manual limpa o cache e exige permissão e nonce.
 
-## Banco
+## Restrição de acesso
 
-Usa o prefixo do site atual seguido por erp_.
+Quando habilitada:
+
+- Visitantes são encaminhados ao login ao abrir páginas, buscas, autores ou feeds.
+- REST retorna 401 para visitantes, preservando a autenticação por cookie com nonce e Application Passwords.
+- Chamadas anônimas de AJAX e admin-post são bloqueadas.
+- XML-RPC não fica disponível; integrações autenticadas utilizam REST.
+- Cadastro público e sitemap ficam desabilitados e robots indica Disallow.
+- As respostas WordPress recebem no-store, cabeçalhos de conteúdo privado e noindex.
+- No Multisite, uma sessão global não basta: o usuário precisa pertencer ao site da igreja atual. Superadministradores preservam seu acesso.
+
+A restrição não altera a senha ou o cadastro dos usuários existentes e só vale enquanto o Core estiver ativo. Não há exclusão de dados ao desativar.
+
+**Limite de infraestrutura:** o PHP protege respostas geradas pelo WordPress. Arquivos já públicos por URL direta em uploads e caches de página servidos antes do WordPress precisam de proteção e limpeza no servidor/CDN. Logo, CSS e fontes da entrada precisam ser públicos para a autenticação funcionar. Documentos privados dos próximos módulos deverão utilizar armazenamento e entrega autenticados, em vez de links públicos da biblioteca.
+
+## Base SaaS
+
+O modelo atual usa uma igreja por instalação WordPress ou por site do Multisite:
+
+- Configuração em wp_options do site atual, nunca em uma opção global da rede.
+- Identificador persistente igreja_erp_tenant_id criado por site.
+- Tabelas usam o prefixo do site atual.
+- Nenhum campo da requisição escolhe o tenant.
+- A API de configuração é IgrejaERP\Core\Settings::all(), get(), tenant_id(), logo_url() e css_variables().
+- Provisionadores podem definir o primeiro preset pelo filtro igreja_erp_initial_settings($preset, $blog_id), antes da criação/ativação do site.
+
+Este fundamento não inclui planos, cobrança, licença comercial ou provisionamento automático de assinantes. Clone de instalação deve receber um novo identificador no provisionamento, antes de ser associado a uma igreja diferente.
+
+## Banco e permissões
 
 | Tabela | Índices e relações |
 | --- | --- |
@@ -43,17 +78,11 @@ Usa o prefixo do site atual seguido por erp_.
 | erp_departamentos | Slug único; líder, vice, centro de custo e ativo indexados |
 | erp_departamento_equipe | Único em departamento + membro + função; índices por membro e departamento/ativo |
 
-Todos os campos da especificação estão presentes. O nome lgpd_ip foi normalizado sem o espaço acidental da especificação. CPF e wp_user_id ausentes devem ser gravados como NULL. As relações são lógicas, sem cascatas; validação de vínculos, normalização de CPF e JSON e regras de exclusão pertencem aos serviços da Etapa 2.
-
-A versão do esquema só é atualizada depois de criar e verificar as colunas de todas as tabelas. O processo também roda após atualização de plugin, sem reativação. Migrações têm trava de concorrência e intervalo de cinco minutos após falha; reativar tenta novamente imediatamente.
-
-## Permissões
-
-Nenhuma conta é promovida automaticamente. Atribua os perfis pela tela Usuários. O administrador WordPress recebe as capacidades do Core.
+Cinco tabelas com dbDelta e esquema 1.0.0. Relações são lógicas; a camada de serviços da próxima etapa validará os vínculos e as exclusões. CPF e wp_user_id ausentes devem ser NULL. Migrações verificam colunas e índices antes de avançar a versão, preservam dados e têm trava de concorrência.
 
 | Perfil | Permissões do Core |
 | --- | --- |
-| erp_admin_pastor | Gestão do Core, membros, famílias, departamentos, equipes, centros de custo e financeiro |
+| erp_admin_pastor | Gestão do Core, configuração da igreja, upload da logo e gestão dos cadastros/financeiro |
 | erp_secretaria | Gestão de membros, famílias, departamentos e equipes; consulta de centros de custo |
 | erp_administrativo | Gestão de centros de custo e financeiro |
 | erp_lider_depto | Gestão das equipes em que é líder, vice ou coordenador ativo |
@@ -61,29 +90,30 @@ Nenhuma conta é promovida automaticamente. Atribua os perfis pela tela Usuário
 | erp_professor_curso | Portal e próprio perfil; cursos serão definidos pelo add-on |
 | erp_membro | Portal e próprio perfil |
 
-Todos esses perfis consultam a lista básica de departamentos. Isso não concede acesso às equipes e aos dados dos membros. Perfis ERP não recebem manage_options nem promovem usuários a administradores do WordPress.
+Administradores WordPress recebem as capabilities do Core. Perfis ERP não recebem manage_options. Apenas o perfil pastoral recebe upload_files para gerenciar sua logo.
 
-RBAC::usuario_pode($wp_user_id, $acao, $contexto_id) valida a capability global ou, para ações contextuais, a capability local e o vínculo ao departamento/membro. O membro é resolvido pelo usuário autenticado. Ações desconhecidas são negadas.
+RBAC::usuario_pode() exige capability global ou capability local com vínculo ao objeto. Ações desconhecidas são negadas. RBAC::rest_permission_check() usa IDs da rota; corpo e query não substituem o objeto.
 
-RBAC::rest_permission_check($request, $acao) é um permission_callback da REST API nativa e retorna true ou WP_Error com HTTP 401, 403 ou 400. Os IDs vêm da rota (id, membro_id ou departamento_id); corpo e query não substituem a rota. Autenticação por cookie e nonce são processados pelo WordPress antes do callback, que também rejeita nonces fornecidos e inválidos. Application Passwords permanecem compatíveis. Permissão sobre o próprio membro não libera alteração de campos administrativos: os serviços da etapa seguinte devem limitar os campos editáveis.
+Add-ons podem registrar ações pelo filtro igreja_erp_rbac_acoes e validar seus escopos em igreja_erp_rbac_contexto_autorizado. Capabilities externas são preservadas ao sincronizar perfis.
 
-RBAC::rules() contém as ações disponíveis. Add-ons podem acrescentar ações pelo filtro igreja_erp_rbac_acoes (cap, scope e local_cap) e validar seus escopos pelo filtro igreja_erp_rbac_contexto_autorizado (decisão, escopo, contexto, usuário WordPress, membro e ação). Contextos externos são negados por padrão. A sincronização dos perfis preserva capabilities dos add-ons.
-
-## Sequência da entrega
+## Etapas funcionais
 
 | Etapa | Escopo |
 | --- | --- |
-| 1 — atual | Bootstrap, banco, RBAC e atualização WordPress |
-| 2 | Serviços de membros/famílias, departamentos/equipes, centros de custo e EventBus |
-| 3 | Portal mobile, views e assets |
-| 4 | REST, seed, PDF, WhatsApp, configurações e exemplo de add-on |
+| 1 — concluída | Bootstrap, banco, RBAC e atualização WordPress |
+| Atualização 0.2.0 | Configuração institucional, identidade e acesso restrito por igreja |
+| 2 — próxima | Serviços de membros/famílias, departamentos/equipes, centros de custo e EventBus |
+| 3 | Portal mobile, views e assets dos cadastros |
+| 4 | REST dos módulos, seed, PDF, WhatsApp e exemplo de add-on |
 
-Add-ons devem aguardar igreja_erp_core_loaded e conferir a versão mínima e as classes necessárias. A versão 0.1.0 ainda não oferece os serviços da Etapa 2.
+O portal de cadastros e os add-ons ainda não são entregues nesta versão. Add-ons devem aguardar igreja_erp_core_loaded e conferir as classes e a versão mínima de que precisam.
 
 ## Desenvolvimento
 
-O workflow valida sintaxe PHP e integração com WordPress real e MySQL 8. Os cenários cobrem migração, idempotência, índices, isolamento de permissões, REST, nonces e atualização pelo Plugin_Upgrader com o mesmo ZIP da release. Os testes só rodam com IGREJA_ERP_TEST_ENV=1 em banco descartável.
+Classes no namespace IgrejaERP\Core usam um mapa explícito para preservar os nomes class-*.php solicitados.
 
-Use python3 scripts/package.py para gerar o ZIP. O pacote inclui apenas bootstrap, classes, README e licença. O job de publicação só cria uma release em main depois que os testes passam.
+O workflow valida PHP, pacote determinístico, migrações, RBAC, isolamento Multisite, autenticação e interface em navegador. Testes usam apenas banco descartável e contas fictícias e exigem IGREJA_ERP_TEST_ENV=1.
 
-Para publicar uma versão, incremente o cabeçalho, a constante e update.json. A versão do esquema ou do RBAC só muda quando seu respectivo contrato mudar.
+Use python3 scripts/package.py para gerar o ZIP. Inclui bootstrap, classes, views, assets e licenças; não inclui testes. A release é criada em main somente depois das verificações.
+
+Para publicar, incremente o cabeçalho, a constante de versão, update.json e as notas. Incremente o esquema ou a versão RBAC somente quando seus respectivos contratos mudarem.

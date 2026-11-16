@@ -17,6 +17,7 @@ assert metadata["download_url"] == f"https://github.com/paulommaeda/appshalom/re
 output.parent.mkdir(exist_ok=True)
 files = [root / "igreja-erp-core.php", root / "README.md", root / "LICENSE"]
 files += sorted((root / "includes").rglob("*.php"))
+files += sorted(path for path in (root / "assets").rglob("*") if path.is_file())
 with ZipFile(output, "w", compression=ZIP_DEFLATED, compresslevel=9) as archive:
     for file in sorted(files):
         item = ZipInfo("igreja-erp-core/" + file.relative_to(root).as_posix(), (2026, 11, 16, 0, 0, 0))

@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 /** Explicit capabilities, with constrained fallback for object owners/leaders. */
 final class RBAC
 {
-    private const VERSION = '1.0.0';
+    private const VERSION = '1.1.0';
 
     public static function rules(): array
     {
@@ -35,7 +35,7 @@ final class RBAC
         $base = ['read', 'erp_acessar_portal', 'erp_editar_proprio_perfil', 'erp_visualizar_departamentos'];
         $secretaria = ['erp_visualizar_membros', 'erp_gerenciar_membros', 'erp_visualizar_familias', 'erp_gerenciar_familias', 'erp_gerenciar_departamentos', 'erp_visualizar_equipes', 'erp_gerenciar_equipes', 'erp_visualizar_centros_custo'];
         $administrativo = ['erp_visualizar_centros_custo', 'erp_gerenciar_centros_custo', 'erp_visualizar_financeiro', 'erp_gerenciar_financeiro'];
-        $pastor = array_unique(array_merge($base, $secretaria, $administrativo, ['erp_gerenciar_configuracoes', 'erp_executar_seed']));
+        $pastor = array_unique(array_merge($base, $secretaria, $administrativo, ['erp_gerenciar_configuracoes', 'erp_executar_seed', 'upload_files']));
         return [
             'erp_admin_pastor' => ['nome' => 'ERP — Administração pastoral', 'caps' => $pastor],
             'erp_secretaria' => ['nome' => 'ERP — Secretaria', 'caps' => array_merge($base, $secretaria)],
@@ -68,7 +68,9 @@ final class RBAC
                     $role->remove_cap($cap);
                 }
             }
-            $role->add_cap('read');
+            foreach ($definition['caps'] as $cap) {
+                $role->add_cap($cap);
+            }
         }
         $admin = get_role('administrator');
         if ($admin) {

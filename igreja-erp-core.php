@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Igreja ERP Core
  * Plugin URI: https://github.com/paulommaeda/appshalom
- * Description: Base compartilhada do App Shalom. Etapa 1: banco, permissões e atualizações.
- * Version: 0.1.0
+ * Description: Base do App Shalom com identidade por igreja, acesso restrito, banco e permissões.
+ * Version: 0.2.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: App Shalom
@@ -13,7 +13,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('IGREJA_ERP_CORE_VERSION', '0.1.0');
+define('IGREJA_ERP_CORE_VERSION', '0.2.0');
 define('IGREJA_ERP_CORE_DB_VERSION', '1.0.0');
 define('IGREJA_ERP_CORE_FILE', __FILE__);
 define('IGREJA_ERP_CORE_DIR', plugin_dir_path(__FILE__));
@@ -25,6 +25,8 @@ spl_autoload_register(static function ($class) {
         'IgrejaERP\\Core\\Database' => 'includes/class-database.php',
         'IgrejaERP\\Core\\RBAC' => 'includes/class-rbac.php',
         'IgrejaERP\\Core\\Updater' => 'includes/class-updater.php',
+        'IgrejaERP\\Core\\Settings' => 'includes/class-settings.php',
+        'IgrejaERP\\Core\\Access' => 'includes/class-access.php',
     ];
     if (isset($map[$class])) {
         require_once IGREJA_ERP_CORE_DIR . $map[$class];
@@ -41,6 +43,7 @@ register_activation_hook(__FILE__, static function ($network_wide) {
             wp_die(esc_html($result->get_error_message()));
         }
         \IgrejaERP\Core\RBAC::install_roles();
+        \IgrejaERP\Core\Settings::initialize();
     };
     if (is_multisite() && $network_wide) {
         $offset = 0;
@@ -74,6 +77,9 @@ add_action('plugins_loaded', static function () {
     class_exists(\IgrejaERP\Core\RBAC::class);
     class_exists(\IgrejaERP\Core\Updater::class);
     \IgrejaERP\Core\Updater::register();
+    \IgrejaERP\Core\Settings::initialize();
+    \IgrejaERP\Core\Settings::register();
+    \IgrejaERP\Core\Access::register();
     if (!\IgrejaERP\Core\Database::maybe_upgrade()) {
         add_action('admin_notices', [\IgrejaERP\Core\Database::class, 'admin_notice']);
         return;
@@ -96,6 +102,7 @@ add_action('wp_initialize_site', static function ($site) {
         $result = \IgrejaERP\Core\Database::install();
         if (!is_wp_error($result)) {
             \IgrejaERP\Core\RBAC::install_roles();
+            \IgrejaERP\Core\Settings::initialize();
         }
     } finally {
         restore_current_blog();
