@@ -8,6 +8,8 @@ if (!defined('WP_CLI') || !WP_CLI || getenv('IGREJA_ERP_TEST_ENV') !== '1') {
     throw new RuntimeException('Os testes exigem WordPress CLI e banco descartável.');
 }
 require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+$release_version = json_decode(file_get_contents(dirname(__DIR__) . '/update.json'), true)['version'];
+$remote_version = '999.0.0';
 $erp_checks = 0;
 function erp_expect($condition, string $message): void
 {
@@ -31,7 +33,7 @@ function erp_user(string $login, string $role): int
 }
 global $wpdb;
 erp_expect(did_action('igreja_erp_core_loaded') === 1, 'Hook de bootstrap dispara uma vez');
-erp_expect(get_option('igreja_erp_core_db_version') === '1.0.0', 'Versão do esquema');
+erp_expect(get_option('igreja_erp_core_db_version') === IGREJA_ERP_CORE_DB_VERSION, 'Versão do esquema');
 erp_expect(count(Database::schemas()) === 5, 'Cinco tabelas Core');
 foreach (Database::schemas() as $name => $sql) {
     $table = Database::table($name);
@@ -55,7 +57,7 @@ erp_expect((int) $wpdb->get_var($wpdb->prepare('SELECT familia_id FROM %i WHERE 
 
 // Simulate a failed ALTER, then repair it without losing existing rows.
 $wpdb->query($wpdb->prepare('ALTER TABLE %i DROP COLUMN lgpd_ip', Database::table('membros')));
-update_option('igreja_erp_core_db_version', '0.9.0');
+update_option('igreja_erp_core_db_version', '0.0.0');
 $broken = static fn ($queries) => array_map(static fn ($sql) => str_replace('lgpd_ip varchar(45)', 'lgpd_ip invalid_type', $sql), $queries);
 add_filter('dbdelta_queries', $broken);
 $previous = $wpdb->suppress_errors(true);
@@ -63,13 +65,13 @@ $failed = Database::install();
 $wpdb->suppress_errors($previous);
 remove_filter('dbdelta_queries', $broken);
 erp_expect(is_wp_error($failed), 'Erro real de SQL reportado');
-erp_expect(get_option('igreja_erp_core_db_version') === '0.9.0', 'Falha não avança versão');
+erp_expect(get_option('igreja_erp_core_db_version') === '0.0.0', 'Falha não avança versão');
 erp_expect(get_option('igreja_erp_core_migration_lock', false) === false, 'Trava liberada após erro');
 erp_expect(Database::maybe_upgrade() === false, 'Intervalo após falha evita tentativas contínuas');
 delete_option('igreja_erp_core_migration_retry_after');
 erp_expect(Database::maybe_upgrade(), 'Migração restaura coluna');
 erp_expect(in_array('lgpd_ip', $wpdb->get_col($wpdb->prepare('SHOW COLUMNS FROM %i', Database::table('membros'))), true), 'Coluna LGPD restaurada');
-erp_expect(get_option('igreja_erp_core_db_version') === '1.0.0', 'Versão avança após sucesso');
+erp_expect(get_option('igreja_erp_core_db_version') === IGREJA_ERP_CORE_DB_VERSION, 'Versão avança após sucesso');
 add_option('igreja_erp_core_migration_lock', time());
 erp_expect(is_wp_error(Database::install()), 'Concorrência bloqueada');
 update_option('igreja_erp_core_migration_lock', time() - 301);
@@ -77,11 +79,11 @@ erp_expect(Database::install() === true, 'Trava expirada recuperada');
 
 $wpdb->query($wpdb->prepare('ALTER TABLE %i DROP INDEX cpf', Database::table('membros')));
 $duplicate = erp_insert('membros', ['nome_completo' => 'Duplicado legado', 'cpf' => '12345678901']);
-update_option('igreja_erp_core_db_version', '0.9.0');
+update_option('igreja_erp_core_db_version', '0.0.0');
 $previous = $wpdb->suppress_errors(true);
 $failed = Database::install();
 $wpdb->suppress_errors($previous);
-erp_expect(is_wp_error($failed) && get_option('igreja_erp_core_db_version') === '0.9.0', 'Índice único incompleto não conclui migração');
+erp_expect(is_wp_error($failed) && get_option('igreja_erp_core_db_version') === '0.0.0', 'Índice único incompleto não conclui migração');
 $wpdb->delete(Database::table('membros'), ['id' => $duplicate], ['%d']);
 delete_option('igreja_erp_core_migration_retry_after');
 erp_expect(Database::maybe_upgrade(), 'Índice único restaurado após corrigir dado legado');
@@ -169,8 +171,8 @@ erp_expect(get_current_user_id() === 0, 'REST nativo remove cookie sem nonce');
 wp_set_current_user($admin);
 
 $fixture = json_decode(file_get_contents(dirname(__DIR__) . '/update.json'), true);
-$fixture['version'] = '0.1.1';
-$fixture['download_url'] = 'https://github.com/paulommaeda/appshalom/releases/download/v0.1.1/igreja-erp-core-0.1.1.zip';
+$fixture['version'] = $remote_version;
+$fixture['download_url'] = 'https://github.com/paulommaeda/appshalom/releases/download/v' . $remote_version . '/igreja-erp-core-' . $remote_version . '.zip';
 $calls = 0;
 $status = 200;
 $http = static function ($pre, $http_args, $url) use (&$fixture, &$calls, &$status) {
@@ -185,16 +187,16 @@ $http = static function ($pre, $http_args, $url) use (&$fixture, &$calls, &$stat
 };
 add_filter('pre_http_request', $http, 10, 3);
 delete_transient('igreja_erp_core_update_metadata');
-erp_expect(Updater::metadata()['version'] === '0.1.1', 'Metadados válidos');
-erp_expect(Updater::metadata()['version'] === '0.1.1' && $calls === 1, 'Cache evita repetição');
+erp_expect(Updater::metadata()['version'] === $remote_version, 'Metadados válidos');
+erp_expect(Updater::metadata()['version'] === $remote_version && $calls === 1, 'Cache evita repetição');
 erp_expect(Updater::update_response(false, [], 'outro/outro.php', []) === false, 'Outro plugin não é afetado');
 $plugin = plugin_basename(IGREJA_ERP_CORE_FILE);
 delete_site_transient('update_plugins');
 wp_update_plugins();
 $updates = get_site_transient('update_plugins');
-erp_expect(isset($updates->response[$plugin]) && $updates->response[$plugin]->new_version === '0.1.1', 'WordPress anuncia nova versão');
+erp_expect(isset($updates->response[$plugin]) && $updates->response[$plugin]->new_version === $remote_version, 'WordPress anuncia nova versão');
 $info = Updater::plugin_information(false, 'plugin_information', (object) ['slug' => 'igreja-erp-core']);
-erp_expect(is_object($info) && $info->version === '0.1.1', 'Informações da versão');
+erp_expect(is_object($info) && $info->version === $remote_version, 'Informações da versão');
 $fixture['download_url'] = 'https://example.org/plugin.zip';
 delete_transient('igreja_erp_core_update_metadata');
 erp_expect(Updater::metadata() === null, 'Pacote externo rejeitado');
@@ -218,15 +220,15 @@ erp_expect(!isset($updates->response[$plugin]), 'Mesma versão não oferece atua
 require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 require_once ABSPATH . 'wp-admin/includes/file.php';
 $original = file_get_contents(IGREJA_ERP_CORE_FILE);
-erp_expect(file_put_contents(IGREJA_ERP_CORE_FILE, str_replace(' * Version: 0.1.0', ' * Version: 0.0.9', $original)) !== false, 'Preparar versão anterior');
+erp_expect(file_put_contents(IGREJA_ERP_CORE_FILE, str_replace(' * Version: ' . $release_version, ' * Version: 0.0.0', $original)) !== false, 'Preparar versão anterior');
 wp_clean_plugins_cache(true);
 delete_transient('igreja_erp_core_update_metadata');
 wp_update_plugins();
 $updates = get_site_transient('update_plugins');
 erp_expect(isset($updates->response[$plugin]), 'Versão anterior detecta atualização');
-$download = static function ($reply, $package) {
+$download = static function ($reply, $package) use ($release_version) {
     $temp = wp_tempnam('igreja-erp-test.zip');
-    copy(dirname(__DIR__) . '/dist/igreja-erp-core-0.1.0.zip', $temp);
+    copy(dirname(__DIR__) . '/dist/igreja-erp-core-' . $release_version . '.zip', $temp);
     return $temp;
 };
 add_filter('upgrader_pre_download', $download, 10, 2);
@@ -238,7 +240,7 @@ remove_filter('upgrader_pre_download', $download);
 erp_expect(is_array($result), 'Plugin_Upgrader instala ZIP: ' . (is_wp_error($result) ? $result->get_error_message() : var_export($result, true)));
 wp_clean_plugins_cache(true);
 $installed = get_plugin_data(IGREJA_ERP_CORE_FILE, false, false);
-erp_expect($installed['Version'] === '0.1.0', 'Arquivo atualizado para versão nova');
+erp_expect($installed['Version'] === $release_version, 'Arquivo atualizado para versão nova');
 erp_expect(is_file(WP_PLUGIN_DIR . '/igreja-erp-core/igreja-erp-core.php'), 'Pasta canônica preservada');
 erp_expect(is_plugin_active($plugin), 'Ativação preservada');
 erp_expect((int) $wpdb->get_var($wpdb->prepare('SELECT familia_id FROM %i WHERE id = %d', Database::table('membros'), $member_a)) === $family, 'Atualização preserva dados');
