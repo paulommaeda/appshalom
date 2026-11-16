@@ -18,6 +18,7 @@ final class Access
         add_filter('rest_authentication_errors', [self::class, 'rest_gate'], 200);
         add_filter('rest_post_dispatch', [self::class, 'rest_headers'], 200, 3);
         add_filter('wp_headers', [self::class, 'headers']);
+        add_filter('nocache_headers', [self::class, 'headers']);
         add_filter('wp_sitemaps_enabled', static fn ($enabled) => Settings::is_restricted() ? false : $enabled);
         add_filter('robots_txt', static fn ($text) => Settings::is_restricted() ? "User-agent: *\nDisallow: /\n" : $text);
         add_filter('pre_option_blog_public', static fn ($pre) => Settings::is_restricted() ? 0 : $pre);
@@ -65,7 +66,10 @@ final class Access
     {
         if (Settings::is_restricted() && defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
             nocache_headers();
-            wp_die('Este site utiliza acesso autenticado pela API REST.', 'Acesso restrito', ['response' => 403]);
+            status_header(403);
+            header('Content-Type: text/plain; charset=UTF-8');
+            echo 'Este site utiliza acesso autenticado pela API REST.';
+            exit;
         }
     }
 
