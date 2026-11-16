@@ -98,7 +98,11 @@ jobs:
         run: tail -n 80 "$RUNNER_TEMP/wordpress-http.log" || true
       - name: Confirmar inicialização após atualização
         run: |
-          php "$RUNNER_TEMP/wp-cli.phar" plugin is-active igreja-erp-core --path="$RUNNER_TEMP/wordpress"
+          if [ "$IGREJA_MULTISITE" = "1" ]; then
+            php "$RUNNER_TEMP/wp-cli.phar" plugin is-active igreja-erp-core --network --path="$RUNNER_TEMP/wordpress"
+          else
+            php "$RUNNER_TEMP/wp-cli.phar" plugin is-active igreja-erp-core --path="$RUNNER_TEMP/wordpress"
+          fi
           php "$RUNNER_TEMP/wp-cli.phar" eval 'if (get_option("igreja_erp_core_db_version") !== IGREJA_ERP_CORE_DB_VERSION || did_action("igreja_erp_core_loaded") !== 1) { throw new RuntimeException("Falha após atualização"); }' --path="$RUNNER_TEMP/wordpress"
 
   release:
