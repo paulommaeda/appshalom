@@ -10,7 +10,7 @@ if (!defined('WP_CLI') || !WP_CLI || getenv('IGREJA_ERP_TEST_ENV') !== '1') {
 require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 $release_version = json_decode(file_get_contents(dirname(__DIR__) . '/update.json'), true)['version'];
 $remote_version = '999.0.0';
-$erp_checks = 0;
+$GLOBALS['erp_checks'] = 0;
 function erp_expect($condition, string $message): void
 {
     global $erp_checks;
@@ -246,4 +246,4 @@ erp_expect(is_plugin_active($plugin), 'Ativação preservada');
 erp_expect((int) $wpdb->get_var($wpdb->prepare('SELECT familia_id FROM %i WHERE id = %d', Database::table('membros'), $member_a)) === $family, 'Atualização preserva dados');
 remove_filter('pre_http_request', $http);
 delete_transient('igreja_erp_core_update_metadata');
-WP_CLI::success($erp_checks . ' verificações de integração passaram.');
+WP_CLI::success($GLOBALS['erp_checks'] . ' verificações de integração passaram.');

@@ -89,8 +89,9 @@ jobs:
           version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
           tag="v$version"
           if gh release view "$tag" --json tagName >/dev/null 2>&1; then
-            existing=$(gh release view "$tag" --json targetCommitish --jq '.targetCommitish')
-            test "$existing" = "$GITHUB_SHA" || { echo "Incremente a versão: esta release já pertence a outro commit."; exit 1; }
+            mkdir "$RUNNER_TEMP/existing-release"
+            gh release download "$tag" --pattern "igreja-erp-core-$version.zip" --dir "$RUNNER_TEMP/existing-release"
+            cmp "dist/igreja-erp-core-$version.zip" "$RUNNER_TEMP/existing-release/igreja-erp-core-$version.zip" || { echo "Incremente a versão: o pacote desta release já foi publicado com outro conteúdo."; exit 1; }
           else
             gh release create "$tag" "dist/igreja-erp-core-$version.zip" --target "$GITHUB_SHA" --title "Igreja ERP Core $version" --notes-file RELEASE_NOTES.md
           fi
