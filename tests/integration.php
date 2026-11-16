@@ -230,11 +230,12 @@ $download = static function ($reply, $package) {
     return $temp;
 };
 add_filter('upgrader_pre_download', $download, 10, 2);
-$skin = new Automatic_Upgrader_Skin();
+$skin = new WP_Ajax_Upgrader_Skin();
 $upgrader = new Plugin_Upgrader($skin);
-$result = $upgrader->upgrade($plugin);
+$results = $upgrader->bulk_upgrade([$plugin]);
+$result = is_array($results) ? ($results[$plugin] ?? false) : false;
 remove_filter('upgrader_pre_download', $download);
-erp_expect($result === true, 'Plugin_Upgrader instala ZIP: ' . (is_wp_error($result) ? $result->get_error_message() : var_export($result, true)));
+erp_expect(is_array($result), 'Plugin_Upgrader instala ZIP: ' . (is_wp_error($result) ? $result->get_error_message() : var_export($result, true)));
 wp_clean_plugins_cache(true);
 $installed = get_plugin_data(IGREJA_ERP_CORE_FILE, false, false);
 erp_expect($installed['Version'] === '0.1.0', 'Arquivo atualizado para versão nova');

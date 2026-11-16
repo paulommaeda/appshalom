@@ -123,6 +123,9 @@ KEY departamento_ativo (departamento_id,ativo)",
                 'CREATE TABLE %i (' . $fields . ') ENGINE=InnoDB ' . $wpdb->get_charset_collate() . ';',
                 self::table($name)
             );
+            // WordPress 6.5 dbDelta keys its change log inconsistently for quoted
+            // CREATE identifiers. Only dequote a validated simple table identifier.
+            $schemas[$name] = preg_replace('/^CREATE TABLE `([a-zA-Z0-9_]+)` /', 'CREATE TABLE $1 ', $schemas[$name]);
         }
         return $schemas;
     }
