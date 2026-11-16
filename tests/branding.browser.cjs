@@ -45,7 +45,13 @@ async function login(browser, user, pass, target='/') {
         await loginPage.goto(base + '/wp-login.php');
         check((await loginPage.locator('.igreja-login-name').textContent()).includes('CCShalom Curitiba'), 'Login exibe identidade inicial');
         check(await loginPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Login sem rolagem horizontal no celular');
-        check((await loginPage.locator('body').evaluate(el=>getComputedStyle(el).fontFamily)).includes('Montserrat'), 'Fonte institucional carregada');
+        const styleLink = await loginPage.locator('#igreja-erp-login-css').getAttribute('href');
+        const styleResponse = await http.get(styleLink, {maxRedirects:0});
+        check(styleResponse.status() === 200, 'CSS da entrada acessível: ' + styleResponse.status() + ' ' + styleLink + ' ' + JSON.stringify(styleResponse.headers()));
+        const family = await loginPage.locator('body').evaluate(el=>getComputedStyle(el).fontFamily);
+        check(family.includes('Montserrat'), 'Fonte institucional carregada: ' + family + ' / ' + styleLink + ' / ' + (await styleResponse.text()).slice(0,100));
+        await loginPage.evaluate(()=>document.fonts.ready);
+        check(await loginPage.evaluate(()=>[...document.fonts].some(font=>font.family === 'Montserrat' && font.status === 'loaded')), 'Arquivo da fonte local carregado');
         const originalLogo = await loginPage.locator('h1 a').evaluate(el=>getComputedStyle(el).backgroundImage);
         check(originalLogo.includes('ccshalom.com.br'), 'Logo inicial aponta para a marca oficial');
         await visitor.close();
@@ -69,7 +75,9 @@ async function login(browser, user, pass, target='/') {
         });
         await page.getByRole('button', {name:'Usar esta logo', exact:true}).click();
         check(Number(await page.locator('#igreja-logo-id').inputValue()) > 0, 'Logo enviada e selecionada');
-        await Promise.all([page.waitForURL(/igreja_salvo=1/), page.getByRole('button',{name:'Salvar configurações',exact:true}).click()]);
+        const uploadedLogo = await page.locator('#igreja-logo-url').inputValue();
+        await page.locator('#igreja-logo-url').fill(uploadedLogo + '?version=1&variant=logo');
+        await Promise.all([page.waitForNavigation({waitUntil:'load'}), page.getByRole('button',{name:'Salvar configurações',exact:true}).click()]);
         check((await page.getByLabel('Nome de apresentação',{exact:true}).inputValue()) === 'Comunidade Vida — Teste', 'Identidade salva pelo pastor');
         check((await page.locator('[data-color=cor_destaque]').inputValue()) === '#234567', 'Cor salva');
         check((await page.locator('#igreja-logo-url').inputValue()).includes('/uploads/'), 'Logo local salva');
@@ -96,7 +104,8 @@ async function login(browser, user, pass, target='/') {
         const rebranded = await anonymous.newPage();
         await rebranded.goto(base + '/wp-login.php');
         check((await rebranded.locator('.igreja-login-name').textContent()) === 'Comunidade Vida — Teste', 'Login usa nome personalizado');
-        check((await rebranded.locator('h1 a').evaluate(el=>getComputedStyle(el).backgroundImage)).includes('/uploads/'), 'Login usa logo personalizada');
+        const background = await rebranded.locator('h1 a').evaluate(el=>getComputedStyle(el).backgroundImage);
+        check(background.includes('/uploads/') && background.includes('&variant=logo'), 'Login usa logo personalizada e mantém parâmetros da URL');
         await anonymous.close();
 
         const access = page.locator('input[type=checkbox][name="igreja_erp_settings[restrito]"]');

@@ -288,12 +288,12 @@ final class Settings
 
     public static function login_assets(): void
     {
-        wp_enqueue_style('igreja-erp-login', IGREJA_ERP_CORE_URL . 'assets/css/login.css', [], IGREJA_ERP_CORE_VERSION);
+        wp_enqueue_style('igreja-erp-login', IGREJA_ERP_CORE_URL . 'assets/css/login.css', ['login'], IGREJA_ERP_CORE_VERSION);
         wp_add_inline_style('igreja-erp-login', self::css_variables());
         $logo = self::logo_url();
         if ($logo) {
             // JSON string quoting keeps URL data outside CSS syntax.
-            wp_add_inline_style('igreja-erp-login', '.login h1 a{background-image:url(' . wp_json_encode(esc_url_raw($logo), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ')}');
+            wp_add_inline_style('igreja-erp-login', '.login h1 a{background-image:url(' . wp_json_encode(esc_url_raw($logo), JSON_UNESCAPED_SLASHES) . ')}');
         } else {
             wp_add_inline_style('igreja-erp-login', '.login h1 a{background:none;text-indent:0;height:auto;font-size:1.6rem;line-height:1.3;color:var(--igreja-on-primary)}');
         }
