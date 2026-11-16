@@ -94,7 +94,7 @@ async function login(browser, user, pass, target='/') {
         check(memberSave.status() === 403, 'Membro não desativa a restrição');
         if (process.env.IGREJA_MULTISITE === '1') {
             const other = await member.context.request.get(base + '/igreja-b/', {maxRedirects:0});
-            check(other.status() === 403, 'Sessão de uma igreja não acessa outra no navegador');
+            check(other.status() === 403, 'Sessão de uma igreja não acessa outra no navegador: ' + other.status() + ' ' + (other.headers().location || ''));
         }
         const privateHome = await member.context.request.get(base + '/');
         check(privateHome.status() === 200, 'Membro logado acessa o site');

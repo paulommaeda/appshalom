@@ -94,7 +94,7 @@ if (is_multisite()) {
     $a_member = get_user_by('login', 'erp_brand_member')->ID;
     $preset_b = static fn ($preset, $site_id) => array_replace($preset, ['nome_curto' => 'Igreja B', 'nome_igreja' => 'Comunidade B', 'cor_primaria' => '#224433']);
     add_filter('igreja_erp_initial_settings', $preset_b, 10, 2);
-    $b_id = wpmu_create_blog('127.0.0.1', '/igreja-b/', 'Igreja B', $admin, ['public' => 0], get_current_network_id());
+    $b_id = wpmu_create_blog(get_network()->domain, '/igreja-b/', 'Igreja B', $admin, ['public' => 0], get_current_network_id());
     remove_filter('igreja_erp_initial_settings', $preset_b);
     igreja_check(!is_wp_error($b_id), 'Criar igreja B');
     switch_to_blog($b_id);
