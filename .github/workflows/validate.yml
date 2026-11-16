@@ -1,0 +1,94 @@
+name: Validar Igreja ERP Core
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: PHP ${{ matrix.php }} / WordPress ${{ matrix.wordpress }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            wordpress: '6.5.5'
+          - php: '8.3'
+            wordpress: 'latest'
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: igreja_erp_test
+          MYSQL_DATABASE: igreja_erp_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pigreja_erp_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      IGREJA_ERP_TEST_ENV: '1'
+      WP_VERSION: ${{ matrix.wordpress }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, mbstring, zip
+          coverage: none
+      - name: Validar sintaxe PHP
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - name: Gerar e validar pacote
+        run: |
+          python3 scripts/package.py
+          cp dist/igreja-erp-core-0.1.0.zip "$RUNNER_TEMP/first.zip"
+          python3 scripts/package.py
+          cmp dist/igreja-erp-core-0.1.0.zip "$RUNNER_TEMP/first.zip"
+      - name: Preparar WordPress e MySQL
+        run: |
+          curl --fail --retry 3 --location https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar --output "$RUNNER_TEMP/wp-cli.phar"
+          mkdir "$RUNNER_TEMP/wordpress"
+          php "$RUNNER_TEMP/wp-cli.phar" core download --path="$RUNNER_TEMP/wordpress" --version="$WP_VERSION" --quiet
+          php "$RUNNER_TEMP/wp-cli.phar" config create --path="$RUNNER_TEMP/wordpress" --dbname=igreja_erp_test --dbuser=root --dbpass=igreja_erp_test --dbhost=127.0.0.1:3306 --dbprefix=shalom_test_ --quiet
+          php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url=http://localhost --title="Igreja ERP Test" --admin_user=tests --admin_password=igreja_erp_disposable_test --admin_email=test@example.org --skip-email --quiet
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install "$GITHUB_WORKSPACE/dist/igreja-erp-core-0.1.0.zip" --path="$RUNNER_TEMP/wordpress" --activate
+      - name: Testar migrações, RBAC, REST e atualização nativa
+        run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Confirmar inicialização após atualização
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" plugin is-active igreja-erp-core --path="$RUNNER_TEMP/wordpress"
+          php "$RUNNER_TEMP/wp-cli.phar" eval 'if (get_option("igreja_erp_core_db_version") !== "1.0.0" || did_action("igreja_erp_core_loaded") !== 1) { throw new RuntimeException("Falha após atualização"); }' --path="$RUNNER_TEMP/wordpress"
+
+  release:
+    name: Publicar ZIP validado
+    needs: integration
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: igreja-erp-core-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Gerar pacote da release
+        run: python3 scripts/package.py
+      - name: Publicar versão no GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
+          tag="v$version"
+          if gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            existing=$(gh release view "$tag" --json targetCommitish --jq '.targetCommitish')
+            test "$existing" = "$GITHUB_SHA" || { echo "Incremente a versão: esta release já pertence a outro commit."; exit 1; }
+          else
+            gh release create "$tag" "dist/igreja-erp-core-$version.zip" --target "$GITHUB_SHA" --title "Igreja ERP Core $version — Etapa 1" --notes-file RELEASE_NOTES.md
+          fi
