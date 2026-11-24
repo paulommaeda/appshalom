@@ -58,6 +58,10 @@ jobs:
           cp "dist/igreja-erp-core-$version.zip" "$RUNNER_TEMP/first.zip"
           python3 scripts/package.py
           cmp "dist/igreja-erp-core-$version.zip" "$RUNNER_TEMP/first.zip"
+          addon_version=$(python3 -c 'import json; print(json.load(open("addons/igreja-erp-membros/update.json"))["version"])')
+          cp "dist/igreja-erp-membros-$addon_version.zip" "$RUNNER_TEMP/first-addon.zip"
+          python3 scripts/package.py
+          cmp "dist/igreja-erp-membros-$addon_version.zip" "$RUNNER_TEMP/first-addon.zip"
       - name: Preparar WordPress e MySQL
         run: |
           curl --fail --retry 3 --location https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar --output "$RUNNER_TEMP/wp-cli.phar"
@@ -84,6 +88,16 @@ jobs:
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$RUNNER_TEMP/wordpress"
       - name: Testar configurações e isolamento por igreja
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/settings.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Instalar e ativar addon independente de membros
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" eval 'if (class_exists("IgrejaERP\\Core\\Membros") || class_exists("IgrejaERP\\Core\\Registration")) { throw new RuntimeException("O Core carregou recursos do addon ausente"); }' --path="$RUNNER_TEMP/wordpress"
+          addon_version=$(python3 -c 'import json; print(json.load(open("addons/igreja-erp-membros/update.json"))["version"])')
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install "$GITHUB_WORKSPACE/dist/igreja-erp-membros-$addon_version.zip" --path="$RUNNER_TEMP/wordpress"
+          if [ "$IGREJA_MULTISITE" = "1" ]; then
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-membros --network --path="$RUNNER_TEMP/wordpress"
+          else
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-membros --path="$RUNNER_TEMP/wordpress"
+          fi
       - name: Testar membros, famílias e Turnstile no servidor
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/members.php" --path="$RUNNER_TEMP/wordpress"
       - name: Preparar navegador e servidor local
@@ -99,6 +113,18 @@ jobs:
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
         run: node tests/members.browser.cjs
+      - name: Testar ativação e desativação dos addons no navegador
+        env:
+          IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
+        run: node tests/addons.browser.cjs
+      - name: Confirmar Core independente e preservação dos dados
+        run: |
+          php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/core-alone.php" --path="$RUNNER_TEMP/wordpress"
+          if [ "$IGREJA_MULTISITE" = "1" ]; then
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-membros --network --path="$RUNNER_TEMP/wordpress"
+          else
+            php "$RUNNER_TEMP/wp-cli.phar" plugin activate igreja-erp-membros --path="$RUNNER_TEMP/wordpress"
+          fi
       - name: Mostrar diagnóstico HTTP em caso de falha
         if: failure()
         run: tail -n 80 "$RUNNER_TEMP/wordpress-http.log" || true
@@ -129,12 +155,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
-          tag="v$version"
-          if gh release view "$tag" --json tagName >/dev/null 2>&1; then
-            mkdir "$RUNNER_TEMP/existing-release"
-            gh release download "$tag" --pattern "igreja-erp-core-$version.zip" --dir "$RUNNER_TEMP/existing-release"
-            cmp "dist/igreja-erp-core-$version.zip" "$RUNNER_TEMP/existing-release/igreja-erp-core-$version.zip" || { echo "Incremente a versão: o pacote desta release já foi publicado com outro conteúdo."; exit 1; }
-          else
-            gh release create "$tag" "dist/igreja-erp-core-$version.zip" --target "$GITHUB_SHA" --title "Igreja ERP Core $version" --notes-file RELEASE_NOTES.md
-          fi
+          publish_package() {
+            local release_tag="$1" release_file="$2" release_notes="$3" release_title="$4"
+            if gh release view "$release_tag" --json tagName >/dev/null 2>&1; then
+              mkdir -p "$RUNNER_TEMP/existing-$release_tag"
+              gh release download "$release_tag" --pattern "$(basename "$release_file")" --dir "$RUNNER_TEMP/existing-$release_tag"
+              cmp "$release_file" "$RUNNER_TEMP/existing-$release_tag/$(basename "$release_file")" || { echo "Incremente a versão: a release $release_tag já possui outro conteúdo."; exit 1; }
+            else
+              gh release create "$release_tag" "$release_file" --target "$GITHUB_SHA" --title "$release_title" --notes-file "$release_notes"
+            fi
+          }
+          core_version=$(python3 -c 'import json; print(json.load(open("update.json"))["version"])')
+          addon_version=$(python3 -c 'import json; print(json.load(open("addons/igreja-erp-membros/update.json"))["version"])')
+          publish_package "v$core_version" "dist/igreja-erp-core-$core_version.zip" RELEASE_NOTES.md "Igreja ERP Core $core_version"
+          publish_package "membros-v$addon_version" "dist/igreja-erp-membros-$addon_version.zip" addons/igreja-erp-membros/RELEASE_NOTES.md "Igreja ERP — Membros $addon_version"

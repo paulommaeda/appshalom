@@ -96,8 +96,26 @@ async function login(browser, user, path) {
     check((await http.get(publicUrl)).status() === 200, 'Chave vazia no admin mantém segredo anterior');
     if (process.env.IGREJA_MULTISITE === '1') {
       const other = await http.get(base + '/igreja-b/?igreja_cadastro=1');
-      check(other.status() === 503 && !(await other.text()).includes('fixture-site'), 'Formulário e chaves isolados em outra igreja');
+      check(other.status() === 200 && (await other.text()).includes('membro[nome_completo]'), 'Formulário disponível em igreja sem Cloudflare');
     }
+    // Hide fields through the real settings screen and submit without Cloudflare.
+    await pastor.page.locator('[name="captcha_enabled"]').uncheck();
+    await pastor.page.locator('[name="fields[profissao]"]').uncheck();
+    await pastor.page.locator('[name="fields[data_nascimento]"]').uncheck();
+    await Promise.all([pastor.page.waitForURL(/salvo=1/), pastor.page.getByRole('button', {name: 'Salvar cadastro público', exact: true}).click()]);
+    check(!await pastor.page.locator('[name="fields[profissao]"]').isChecked(), 'Configuração de campos persiste');
+    const noCaptcha = await browser.newContext({viewport: {width: 375, height: 812}});
+    const plain = await noCaptcha.newPage();
+    await plain.goto(publicUrl);
+    check(await plain.locator('[name="membro[profissao]"]').count() === 0 && await plain.locator('[name="membro[data_nascimento]"]').count() === 0, 'Campos ocultos não aparecem no público');
+    check(await plain.locator('.cf-turnstile').count() === 0, 'CAPTCHA desligado não é exibido');
+    const plainNonce = await plain.locator('[name="_wpnonce"]').inputValue();
+    const submitted = await noCaptcha.request.post(publicUrl, {form: {_wpnonce: plainNonce, 'membro[nome_completo]': 'Visitante Sem Cloudflare', 'membro[email]': 'sem-cf@example.org', 'membro[profissao]': 'CAMPOTENTATIVA', 'membro[lgpd_aceite]': '1'}, maxRedirects: 0});
+    check(submitted.status() === 303, 'Envio HTTP funciona sem CAPTCHA configurado');
+    await pastor.page.goto(base + '/wp-admin/admin.php?page=igreja-erp-membros&busca=Visitante+Sem+Cloudflare');
+    await pastor.page.locator('tbody').getByRole('link', {name: 'Editar', exact: true}).click();
+    check(await pastor.page.locator('[name="membro[profissao]"]').inputValue() === '', 'Campo desabilitado rejeita conteúdo manipulado no POST');
+    await noCaptcha.close();
     await pastor.context.close();
     console.log(checks + ' verificações HTTP e de interface de membros passaram.');
   } finally { await browser.close(); await http.dispose(); }

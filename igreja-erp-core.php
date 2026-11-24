@@ -3,7 +3,7 @@
  * Plugin Name: Igreja ERP Core
  * Plugin URI: https://github.com/paulommaeda/appshalom
  * Description: Base do App Shalom com identidade por igreja, acesso restrito, banco e permissões.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: App Shalom
@@ -13,7 +13,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('IGREJA_ERP_CORE_VERSION', '0.3.0');
+define('IGREJA_ERP_CORE_VERSION', '0.4.0');
 define('IGREJA_ERP_CORE_DB_VERSION', '1.0.0');
 define('IGREJA_ERP_CORE_FILE', __FILE__);
 define('IGREJA_ERP_CORE_DIR', plugin_dir_path(__FILE__));
@@ -27,9 +27,7 @@ spl_autoload_register(static function ($class) {
         'IgrejaERP\\Core\\Updater' => 'includes/class-updater.php',
         'IgrejaERP\\Core\\Settings' => 'includes/class-settings.php',
         'IgrejaERP\\Core\\Access' => 'includes/class-access.php',
-        'IgrejaERP\\Core\\Membros' => 'includes/class-membros.php',
-        'IgrejaERP\\Core\\MembersAdmin' => 'includes/class-members-admin.php',
-        'IgrejaERP\\Core\\Registration' => 'includes/class-registration.php',
+        'IgrejaERP\\Core\\Addons' => 'includes/class-addons.php',
     ];
     if (isset($map[$class])) {
         require_once IGREJA_ERP_CORE_DIR . $map[$class];
@@ -88,8 +86,7 @@ add_action('plugins_loaded', static function () {
         return;
     }
     \IgrejaERP\Core\RBAC::maybe_upgrade();
-    \IgrejaERP\Core\MembersAdmin::register();
-    \IgrejaERP\Core\Registration::register();
+    \IgrejaERP\Core\Addons::register();
     /** Infrastructure ready; add-ons must check their minimum required Core version. */
     do_action('igreja_erp_core_loaded', IGREJA_ERP_CORE_VERSION);
 }, 5);

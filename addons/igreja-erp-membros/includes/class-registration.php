@@ -9,16 +9,59 @@ final class Registration
     public const ACTION = 'member_registration';
     private const GUARD_PREFIX = 'igreja_erp_guard_';
 
+    public static function fields(): array
+    {
+        return [
+            'nome_completo' => ['label' => 'Nome completo', 'type' => 'text', 'max' => 180, 'autocomplete' => 'name', 'locked' => true],
+            'nome_social_apelido' => ['label' => 'Como prefere ser chamado(a)', 'type' => 'text', 'max' => 100, 'autocomplete' => 'nickname'],
+            'data_nascimento' => ['label' => 'Data de nascimento', 'type' => 'date', 'max' => 10, 'autocomplete' => 'bday'],
+            'email' => ['label' => 'E-mail', 'type' => 'email', 'max' => 150, 'autocomplete' => 'email'],
+            'celular_whatsapp' => ['label' => 'WhatsApp com DDD', 'type' => 'tel', 'max' => 20, 'autocomplete' => 'tel'],
+            'profissao' => ['label' => 'Profissão', 'type' => 'text', 'max' => 120, 'autocomplete' => 'organization-title'],
+            'sexo' => ['label' => 'Sexo', 'type' => 'select', 'options' => ['M' => 'Masculino', 'F' => 'Feminino']],
+            'estado_civil' => ['label' => 'Estado civil', 'type' => 'select', 'options' => array_combine(Membros::ESTADOS_CIVIS, Membros::ESTADOS_CIVIS)],
+        ];
+    }
+
+    public static function normalize_fields(mixed $input): array
+    {
+        $result = [];
+        foreach (self::fields() as $key => $field) {
+            $result[$key] = !empty($field['locked']) || (is_array($input) && in_array($input[$key] ?? null, [true, 1, '1'], true));
+        }
+        return $result;
+    }
+
     public static function settings(): array
     {
         $value = get_option(self::OPTION, []);
-        return array_replace(['enabled' => true, 'site_key' => '', 'secret_key' => ''], is_array($value) ? $value : []);
+        $value = is_array($value) ? $value : [];
+        $defaults = ['enabled' => true, 'site_key' => '', 'secret_key' => '', 'captcha_enabled' => !empty($value['site_key']) || !empty($value['secret_key']), 'fields' => array_fill_keys(array_keys(self::fields()), true)];
+        $settings = array_replace($defaults, $value);
+        $settings['fields'] = self::normalize_fields($settings['fields']);
+        return $settings;
     }
 
     public static function ready(): bool
     {
         $settings = self::settings();
-        return $settings['enabled'] && $settings['site_key'] !== '' && $settings['secret_key'] !== '';
+        return (bool) $settings['enabled'];
+    }
+
+    public static function uses_turnstile(): bool
+    {
+        return (bool) self::settings()['captcha_enabled'];
+    }
+
+    public static function field_enabled(string $key): bool
+    {
+        return self::settings()['fields'][$key] ?? false;
+    }
+
+    public static function public_input(array $input): array
+    {
+        $enabled = array_filter(self::settings()['fields']);
+        return array_intersect_key($input, $enabled);
     }
 
     public static function url(): string
@@ -29,7 +72,7 @@ final class Registration
 
     public static function register(): void
     {
-        add_action('template_redirect', [self::class, 'page'], -90);
+        Access::register_public_route([self::class, 'is_public_request'], [self::class, 'page']);
         add_action('admin_menu', [self::class, 'menu']);
         add_action('admin_post_igreja_erp_save_registration', [self::class, 'save_settings']);
         add_action('igreja_erp_cleanup_registration', [self::class, 'cleanup']);
@@ -79,7 +122,7 @@ final class Registration
     public static function authorize_submission(string $token): bool|\WP_Error
     {
         $error = static fn () => new \WP_Error('igreja_erp_captcha', 'Não foi possível confirmar a verificação de segurança. Atualize a verificação e tente novamente.');
-        if (!self::ready() || $token === '' || strlen($token) > 2048) {
+        if (!self::ready()) {
             return $error();
         }
         if (!wp_next_scheduled('igreja_erp_cleanup_registration')) {
@@ -97,11 +140,19 @@ final class Registration
         if (!$claimed) {
             return new \WP_Error('igreja_erp_limite', 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
         }
+        // CAPTCHA is optional, but rate limiting remains active for every submission.
+        if (!self::uses_turnstile()) {
+            return true;
+        }
+        $settings = self::settings();
+        if ($settings['site_key'] === '' || $settings['secret_key'] === '' || $token === '' || strlen($token) > 2048) {
+            return $error();
+        }
         $response = wp_remote_post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
             'timeout' => 10,
             'redirection' => 0,
             'limit_response_size' => 16384,
-            'body' => ['secret' => self::settings()['secret_key'], 'response' => $token, 'remoteip' => self::remote_ip()],
+            'body' => ['secret' => $settings['secret_key'], 'response' => $token, 'remoteip' => self::remote_ip()],
         ]);
         if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
             return $error();
@@ -156,7 +207,7 @@ final class Registration
         }
         $settings = self::settings();
         $logo = Settings::logo_url();
-        require IGREJA_ERP_CORE_DIR . 'includes/views/view-public-registration.php';
+        require IGREJA_ERP_MEMBROS_DIR . 'includes/views/view-public-registration.php';
         exit;
     }
 
@@ -171,22 +222,7 @@ final class Registration
             wp_die('Você não tem permissão para configurar o cadastro.', '', ['response' => 403]);
         }
         $settings = self::settings();
-        ?>
-        <div class="wrap igreja-members"><h1>Cadastro público</h1>
-        <?php if (isset($_GET['salvo'])): ?><div class="notice notice-success"><p>Configurações salvas.</p></div><?php endif; ?>
-        <p>Compartilhe este link: <a href="<?php echo esc_url(self::url()); ?>" target="_blank" rel="noopener"><?php echo esc_html(self::url()); ?></a></p>
-        <p>Os envios criam visitantes, sem conta de acesso. Confira os dados na lista de membros e defina a situação e a família.</p>
-        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="igreja-panel">
-            <input type="hidden" name="action" value="igreja_erp_save_registration"><?php wp_nonce_field('igreja_erp_save_registration'); ?>
-            <p><label><input type="checkbox" name="enabled" value="1" <?php checked((bool) $settings['enabled']); ?>> Habilitar formulário público</label></p>
-            <p><label>Turnstile — Site key<br><input class="regular-text" name="site_key" maxlength="100" value="<?php echo esc_attr($settings['site_key']); ?>" autocomplete="off"></label></p>
-            <p><label>Turnstile — Secret key<br><input type="password" class="regular-text" name="secret_key" maxlength="200" value="" autocomplete="new-password" placeholder="<?php echo $settings['secret_key'] ? 'Chave configurada; deixe vazio para manter' : 'Informe a chave secreta'; ?>"></label></p>
-            <p><label><input type="checkbox" name="remove_secret" value="1"> Remover a chave secreta atual e bloquear envios</label></p>
-            <p>Crie um widget Turnstile no Cloudflare para o domínio <strong><?php echo esc_html((string) wp_parse_url(home_url('/'), PHP_URL_HOST)); ?></strong>, no modo Managed. Preencha as duas chaves para liberar os envios. A chave secreta nunca é exibida no formulário público.</p>
-            <?php if (!self::ready()): ?><p role="status"><strong>O formulário está indisponível até que as duas chaves estejam configuradas e o cadastro habilitado.</strong></p><?php endif; ?>
-            <?php submit_button('Salvar cadastro público'); ?>
-        </form></div>
-        <?php
+        require IGREJA_ERP_MEMBROS_DIR . 'includes/views/view-registration-settings.php';
     }
 
     public static function save_settings(): void
@@ -206,8 +242,14 @@ final class Registration
             }
         }
         $settings['enabled'] = ($_POST['enabled'] ?? '') === '1';
+        $settings['captcha_enabled'] = ($_POST['captcha_enabled'] ?? '') === '1';
+        $settings['fields'] = self::normalize_fields($_POST['fields'] ?? []);
         if (($_POST['remove_secret'] ?? '') === '1') {
             $settings['secret_key'] = '';
+            $settings['captcha_enabled'] = false;
+        }
+        if ($settings['captcha_enabled'] && ($settings['site_key'] === '' || $settings['secret_key'] === '')) {
+            wp_die('Para habilitar o Turnstile, informe as duas chaves. Você pode deixar a opção desmarcada para usar o formulário sem CAPTCHA.', '', ['response' => 400]);
         }
         update_option(self::OPTION, $settings, false);
         wp_safe_redirect(admin_url('admin.php?page=igreja-erp-cadastro&salvo=1'));

@@ -273,15 +273,14 @@ final class Membros
         return $id;
     }
 
-    /** Anonymous intake has its own allowlist, mandatory server CAPTCHA and no updates. */
+    /** Public intake only accepts enabled fields; it never updates existing records. */
     public static function cadastrar_visitante(array $input, string $token): int|\WP_Error
     {
-        $allowed = array_flip(['nome_completo', 'nome_social_apelido', 'data_nascimento', 'sexo', 'estado_civil', 'email', 'celular_whatsapp', 'profissao']);
-        $data = self::member_data(array_intersect_key($input, $allowed), null);
+        $data = self::member_data(Registration::public_input($input), null);
         if (is_wp_error($data)) {
             return $data;
         }
-        if (empty($data['email']) && empty($data['celular_whatsapp'])) {
+        if ((Registration::field_enabled('email') || Registration::field_enabled('celular_whatsapp')) && empty($data['email']) && empty($data['celular_whatsapp'])) {
             return self::error('Informe um e-mail ou WhatsApp para contato.');
         }
         if (($input['lgpd_aceite'] ?? null) !== '1') {

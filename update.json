@@ -1,12 +1,12 @@
 {
   "name": "Igreja ERP Core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "requires": "6.5",
   "requires_php": "8.1",
-  "download_url": "https://github.com/paulommaeda/appshalom/releases/download/v0.3.0/igreja-erp-core-0.3.0.zip",
+  "download_url": "https://github.com/paulommaeda/appshalom/releases/download/v0.4.0/igreja-erp-core-0.4.0.zip",
   "sections": {
-    "description": "<p>Core do App Shalom com identidade e acesso restrito por igreja, cadastro de membros e famílias e formulário público protegido por Cloudflare Turnstile.</p>",
-    "installation": "<p>Instale o ZIP da release em Plugins → Adicionar plugin → Enviar plugin. Ao ativar, o site passa a exigir login. Personalize em Igreja ERP → Configurações.</p><p>Respostas do WordPress são protegidas pelo Core; arquivos estáticos e cache externo requerem proteção no servidor.</p><p>Configure as chaves Cloudflare em Igreja ERP → Cadastro público. O link funciona sem login e os envios entram como visitantes, sem conta de acesso.</p>",
-    "changelog": "<h4>0.3.0</h4><ul><li>Cadastro e edição de membros e famílias com busca, filtros e paginação.</li><li>Vínculos familiares e situação na igreja.</li><li>Gestão por administrador, pastor e secretaria.</li><li>Formulário público isolado do site privado, com aceite e Cloudflare Turnstile validado no servidor.</li><li>Proteção contra repetição e limitação de tentativas.</li></ul><h4>0.2.0</h4><ul><li>Configurações de identidade e contato por igreja.</li><li>Nome, logo e cores da CCShalom Curitiba como configuração inicial.</li><li>Acesso restrito por padrão em páginas, feeds, REST e chamadas anônimas do WordPress.</li><li>Isolamento por site no Multisite e validação de vínculo da conta.</li><li>Tela de entrada com identidade visual e recuperação de senha nativa.</li><li>Atualizações preservam a personalização da igreja.</li></ul>"
+    "description": "<p>Base do App Shalom com identidade por igreja, site privado, banco, permissões e catálogo de addons independentes.</p>",
+    "installation": "<p>Instale e ative o Core. Para membros e famílias, instale e ative também o addon Igreja ERP — Membros. Gerencie em Igreja ERP → Addons ou na tela Plugins.</p>",
+    "changelog": "<h4>0.4.0</h4><ul><li>Membros e formulário público separados em addon instalável e ativável.</li><li>Catálogo de addons e suporte a rotas públicas registradas por plugins ativos.</li><li>Dados, famílias, permissões e configurações preservados.</li></ul><h4>0.3.0</h4><ul><li>Cadastro e edição de membros e famílias com busca, filtros e paginação.</li><li>Vínculos familiares e situação na igreja.</li><li>Gestão por administrador, pastor e secretaria.</li><li>Formulário público isolado do site privado, com aceite e Cloudflare Turnstile validado no servidor.</li><li>Proteção contra repetição e limitação de tentativas.</li></ul><h4>0.2.0</h4><ul><li>Configurações de identidade e contato por igreja.</li><li>Nome, logo e cores da CCShalom Curitiba como configuração inicial.</li><li>Acesso restrito por padrão em páginas, feeds, REST e chamadas anônimas do WordPress.</li><li>Isolamento por site no Multisite e validação de vínculo da conta.</li><li>Tela de entrada com identidade visual e recuperação de senha nativa.</li><li>Atualizações preservam a personalização da igreja.</li></ul>"
   }
 }

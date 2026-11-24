@@ -5,6 +5,14 @@ defined('ABSPATH') || exit;
 /** Login boundary for WordPress responses; static files remain a server concern. */
 final class Access
 {
+    /** Only active, trusted addons can register their own standalone handlers. */
+    private static array $public_routes = [];
+
+    public static function register_public_route(callable $matches, callable $render): void
+    {
+        self::$public_routes[] = [$matches, $render];
+    }
+
     public static function register(): void
     {
         if (Settings::is_restricted() && !defined('DONOTCACHEPAGE')) {
@@ -36,13 +44,18 @@ final class Access
 
     public static function front_gate(): void
     {
+        foreach (self::$public_routes as [$matches, $render]) {
+            if ($matches()) {
+                nocache_headers();
+                $render();
+                // A public handler must finish the response; never fall into the theme.
+                wp_die('Não foi possível exibir este formulário.', '', ['response' => 503]);
+            }
+        }
         if (!Settings::is_restricted()) {
             return;
         }
         nocache_headers();
-        if (has_action('template_redirect', [Registration::class, 'page']) !== false && Registration::is_public_request()) {
-            return;
-        }
         if (!is_user_logged_in()) {
             auth_redirect();
             exit;

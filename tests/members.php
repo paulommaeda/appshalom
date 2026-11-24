@@ -20,8 +20,8 @@ wp_set_current_user(0);
 $expect(is_wp_error(Membros::salvar_membro(['nome_completo' => 'Intruso'])), 'Anônimo não gerencia membros');
 $expect(is_wp_error(Membros::salvar_familia(['nome_familia' => 'Intruso'])), 'Anônimo não gerencia famílias');
 $expect(Membros::listar_membros()['total'] === 0 && Membros::get_familia(1) === [], 'Anônimo não lê cadastros');
-$expect(!Registration::ready(), 'Sem chaves, cadastro bloqueado');
-$expect(is_wp_error(Registration::authorize_submission('fake')), 'CAPTCHA sem configuração falha fechado');
+$expect(Registration::ready() && !Registration::uses_turnstile(), 'Sem chaves, formulário disponível sem CAPTCHA');
+$expect(Registration::authorize_submission('') === true, 'Envio permitido sem Cloudflare quando desativado');
 wp_set_current_user($admin);
 $family = Membros::salvar_familia(['nome_familia' => 'Família Integração', 'cep' => '81750-000', 'cidade' => 'Curitiba', 'uf' => 'pr']);
 $expect(is_int($family), 'Criar família');
@@ -67,6 +67,28 @@ wp_set_current_user($admin);
 Membros::salvar_membro(['id' => $member, 'wp_user_id' => get_user_by('login', 'erp_brand_member')->ID]);
 wp_set_current_user(get_user_by('login', 'erp_brand_member')->ID);
 $expect(Membros::get_current_membro()->id === (string) $member || (int) Membros::get_current_membro()->id === $member, 'Próprio perfil disponível ao addon');
+
+// Field configuration is enforced on the server, independently of the HTML.
+$expect(did_action('igreja_erp_membros_loaded') === 1, 'Addon independente carregado');
+$expect(!file_exists(IGREJA_ERP_CORE_DIR . 'includes/class-membros.php'), 'Core não contém implementação do addon');
+$expect(defined('IGREJA_ERP_MEMBROS_VERSION'), 'Versão própria do addon');
+$normalized = Registration::normalize_fields(['nome_completo' => '0', 'profissao' => [], 'email' => '1', 'status' => '1']);
+$expect($normalized['nome_completo'] && $normalized['email'] && !$normalized['profissao'] && !isset($normalized['status']), 'Campos fixos e whitelist de configuração');
+update_option(Registration::OPTION, ['fields' => $normalized, 'captcha_enabled' => false], false);
+wp_set_current_user(0);
+$hidden = Membros::cadastrar_visitante(['nome_completo' => 'Campos Ocultos', 'email' => 'campos@example.org', 'celular_whatsapp' => ['malformed'], 'profissao' => 'NAO SALVAR', 'data_nascimento' => 'invalid', 'lgpd_aceite' => '1'], '');
+$expect(is_int($hidden), 'Campos desativados ignorados antes da validação');
+wp_set_current_user($admin);
+$hidden_record = Membros::get_by_id($hidden);
+$expect($hidden_record->profissao === null && $hidden_record->celular_whatsapp === null && $hidden_record->data_nascimento === null, 'Servidor não persiste campos ocultos');
+$expect(Membros::get_by_id($member)->email === 'atualizado@example.org', 'Ocultar campo não apaga dados existentes');
+update_option(Registration::OPTION, ['fields' => [], 'captcha_enabled' => false], false);
+wp_set_current_user(0);
+$only_name = Membros::cadastrar_visitante(['nome_completo' => 'Somente Nome', 'lgpd_aceite' => '1'], '');
+$expect(is_int($only_name), 'Contatos podem ser desabilitados sem bloquear o cadastro');
+$expect(is_wp_error(Membros::cadastrar_visitante(['lgpd_aceite' => '1'], '')), 'Nome obrigatório não pode ser removido');
+delete_option(Registration::OPTION);
+$expect(Registration::field_enabled('email') && Registration::field_enabled('profissao'), 'Configuração legada preserva todos os campos originais');
 
 $_SERVER['REMOTE_ADDR'] = '192.0.2.1';
 $_SERVER['HTTP_X_FORWARDED_FOR'] = '198.51.100.99';
@@ -133,7 +155,7 @@ if (is_multisite()) {
     $a = get_current_blog_id();
     $b = get_site_by_path(get_network()->domain, '/igreja-b/')->blog_id;
     switch_to_blog($b);
-    $expect(!Registration::ready(), 'Chaves isoladas por igreja');
+    $expect(Registration::ready() && !Registration::uses_turnstile(), 'Igreja sem chaves mantém formulário disponível');
     $expect(Membros::listar_membros(['busca' => 'Visitante Público Integração'])['total'] === 0, 'Cadastros isolados por igreja');
     $expect(Membros::get_familia($family) === [], 'Família da outra igreja invisível');
     restore_current_blog();

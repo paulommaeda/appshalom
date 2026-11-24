@@ -2,9 +2,9 @@
 
 Repositório: https://github.com/paulommaeda/appshalom
 
-## Versão 0.3.0 — Membros, famílias e cadastro público
+## Versão 0.4.0 — Core e addons independentes
 
-O Core entrega banco, permissões, atualização WordPress, identidade por igreja e gestão de membros e famílias. O formulário público recebe cadastros sem abrir o restante do site privado.
+O Core entrega banco, permissões, atualização WordPress, identidade por igreja e acesso privado. Membros, famílias e formulário público ficam no plugin independente **Igreja ERP — Membros 0.1.0**, ativável em Plugins ou Igreja ERP → Addons.
 
 ### Configurações da igreja
 
@@ -30,8 +30,9 @@ Requer **WordPress 6.5+**, **PHP 8.1+** e MySQL/MariaDB compatível com WordPres
 1. Baixe o ZIP instalável em Releases.
 2. Use Plugins → Adicionar plugin → Enviar plugin e ative Igreja ERP Core.
 3. O site passa a exigir login e as configurações iniciais são preparadas.
-4. Personalize em Igreja ERP → Configurações.
-5. Para novas versões, use Painel → Atualizações ou Verificar atualizações na linha do plugin.
+4. Para os cadastros, instale também o ZIP igreja-erp-membros-0.1.0.zip e ative o addon.
+5. Personalize em Igreja ERP → Configurações.
+6. Para novas versões, use Painel → Atualizações ou Verificar atualizações na linha de cada plugin. As versões do Core e dos addons são independentes.
 
 A atualização 0.1.0 → 0.2.0 também prepara as configurações e habilita o acesso restrito em instalações ainda sem essas configurações.
 
@@ -102,7 +103,7 @@ Add-ons podem registrar ações pelo filtro igreja_erp_rbac_acoes e validar seus
 | --- | --- |
 | 1 — concluída | Bootstrap, banco, RBAC e atualização WordPress |
 | Atualização 0.2.0 | Configuração institucional, identidade e acesso restrito por igreja |
-| Atualização 0.3.0 | Serviços e telas administrativas de membros/famílias e formulário público com Turnstile |
+| Addon Membros 0.1.0 / Core 0.4.0 | Plugin independente de membros/famílias e formulário público configurável com Turnstile opcional |
 | 2 — restante | Serviços de departamentos/equipes, centros de custo e EventBus |
 | 3 | Portal mobile, views e assets dos cadastros |
 | 4 | REST dos módulos, seed, PDF, WhatsApp e exemplo de add-on |
@@ -120,6 +121,8 @@ Use python3 scripts/package.py para gerar o ZIP. Inclui bootstrap, classes, view
 Para publicar, incremente o cabeçalho, a constante de versão, update.json e as notas. Incremente o esquema ou a versão RBAC somente quando seus respectivos contratos mudarem.
 ## Cadastro de membros e famílias
 
-O Core agora oferece listagem e edição de membros, vínculos familiares, situação na igreja e formulário público com Cloudflare Turnstile. Configure em **Igreja ERP → Cadastro público**. O link funciona mesmo com o restante do site privado; as duas chaves Turnstile são obrigatórias para receber envios. Novos cadastros públicos entram como visitantes e não criam contas de acesso.
+O addon **Igreja ERP — Membros** oferece listagem e edição de membros, vínculos familiares, situação na igreja e formulário público. Configure em **Igreja ERP → Cadastro público**, inclusive a seleção dos campos exibidos e o uso opcional do Turnstile. Sem chaves, o formulário funciona com proteção básica. Ao habilitar o CAPTCHA, as duas chaves e a validação do servidor são obrigatórias nos envios. Novos cadastros públicos entram como visitantes e não criam contas de acesso.
+
+Desativar o addon remove suas telas e a rota pública, preservando os cadastros e as opções. O Core continua funcionando. Atualizar do Core 0.3.0 para 0.4.0 exige instalar o addon para voltar a acessar os cadastros; os dados permanecem nas mesmas tabelas.
 
 Veja [uso, permissões, segurança e serviços para addons](docs/CADASTRO-MEMBROS.md).

@@ -25,9 +25,9 @@ final class MembersAdmin
         if (!in_array($page, ['igreja-erp-membros', 'igreja-erp-familias', 'igreja-erp-cadastro', 'igreja-erp-core'], true) || !current_user_can('erp_visualizar_membros')) {
             return;
         }
-        wp_enqueue_style('igreja-erp-members', IGREJA_ERP_CORE_URL . 'assets/css/members.css', [], IGREJA_ERP_CORE_VERSION);
+        wp_enqueue_style('igreja-erp-members', IGREJA_ERP_MEMBROS_URL . 'assets/css/members.css', [], IGREJA_ERP_MEMBROS_VERSION);
         wp_add_inline_style('igreja-erp-members', Settings::css_variables());
-        wp_enqueue_script('igreja-erp-members', IGREJA_ERP_CORE_URL . 'assets/js/members.js', [], IGREJA_ERP_CORE_VERSION, true);
+        wp_enqueue_script('igreja-erp-members', IGREJA_ERP_MEMBROS_URL . 'assets/js/members.js', [], IGREJA_ERP_MEMBROS_VERSION, true);
         wp_localize_script('igreja-erp-members', 'igrejaMembers', ['ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('igreja_erp_search_families')]);
     }
 
@@ -68,7 +68,7 @@ final class MembersAdmin
         $values = array_replace($record ? (array) $record : ['status' => 'Membro Ativo'], $notice['values'] ?? []);
         $filters = ['busca' => self::query('busca'), 'status' => self::query('status'), 'familia_id' => absint(self::query('familia_id')), 'page' => absint(self::query('pagina') ?: '1')];
         $list = Membros::listar_membros($filters);
-        require IGREJA_ERP_CORE_DIR . 'includes/views/view-admin-members.php';
+        require IGREJA_ERP_MEMBROS_DIR . 'includes/views/view-admin-members.php';
     }
 
     public static function render_families(): void
@@ -87,7 +87,7 @@ final class MembersAdmin
         $editing = $can_edit && (self::query('novo') === '1' || $id || $notice);
         $values = array_replace(isset($family['familia']) ? (array) $family['familia'] : [], $notice['values'] ?? []);
         $list = Membros::listar_familias(self::query('busca'), absint(self::query('pagina') ?: '1'));
-        require IGREJA_ERP_CORE_DIR . 'includes/views/view-admin-families.php';
+        require IGREJA_ERP_MEMBROS_DIR . 'includes/views/view-admin-families.php';
     }
 
     private static function finish(string $kind, array $input, int|\WP_Error $result): void

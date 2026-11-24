@@ -210,7 +210,7 @@ final class Settings
     {
         // Secretaria must see the parent menu without acquiring settings access.
         $capability = current_user_can(self::CAPABILITY) ? self::CAPABILITY : 'erp_visualizar_membros';
-        $callback = current_user_can(self::CAPABILITY) ? [self::class, 'render'] : [MembersAdmin::class, 'render_members'];
+        $callback = current_user_can(self::CAPABILITY) ? [self::class, 'render'] : [Addons::class, 'dashboard'];
         add_menu_page('Igreja ERP', 'Igreja ERP', $capability, 'igreja-erp-core', $callback, 'dashicons-building', 58);
         add_submenu_page('igreja-erp-core', 'Configurações da igreja', 'Configurações', self::CAPABILITY, 'igreja-erp-core', [self::class, 'render']);
     }
