@@ -1,0 +1,13 @@
+{
+  "name": "Igreja ERP — Membros",
+  "version": "0.3.0",
+  "requires": "6.5",
+  "requires_php": "8.1",
+  "requires_core": "0.6.0",
+  "download_url": "https://github.com/paulommaeda/appshalom/releases/download/membros-v0.3.0/igreja-erp-membros-0.3.0.zip",
+  "sections": {
+    "description": "<p>Addon independente de membros, famílias e cadastro público com campos configuráveis e Turnstile opcional.</p>",
+    "installation": "<p>Ative o Igreja ERP Core 0.4.0 ou superior. Instale este ZIP e ative Igreja ERP — Membros. Configure o formulário em Igreja ERP → Cadastro público.</p>",
+    "changelog": "<h4>0.3.0</h4><ul><li>Endereço individual de membros no painel, formulário público e CSV.</li><li>Consulta ao CEP com preenchimento automático e edição manual.</li></ul><h4>0.3.0</h4><ul><li>Importação e exportação de configurações e membros.</li><li>Aprovação com criação de conta e convite para definir senha com a identidade da igreja.</li></ul><h4>0.3.0</h4><ul><li>Membros e famílias como plugin separado.</li><li>Campos públicos configuráveis por igreja.</li><li>Formulário funcional sem Cloudflare, com Turnstile opcional.</li><li>Desativação preserva cadastros e opções.</li></ul>"
+  }
+}
