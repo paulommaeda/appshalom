@@ -1,14 +1,16 @@
-Igreja ERP Core 0.2.0 — Identidade por igreja e acesso restrito.
+Igreja ERP Core 0.3.0 — Membros, famílias e cadastro público.
 
-- Nome, logo, cores, contato e endereço editáveis em Igreja ERP → Configurações.
-- Configuração inicial: CCShalom Curitiba, com a logo do site oficial e a paleta do guia de identidade fornecido.
-- Site restrito por padrão ao ativar ou atualizar uma instalação que ainda não possui configurações.
-- Proteção de páginas, feeds, REST, AJAX anônimo, admin-post e XML-RPC.
-- Login com a identidade da igreja, mantendo autenticação e recuperação de senha do WordPress.
-- Configurações e identificador próprios por instalação/site do Multisite.
-- A conta precisa pertencer à igreja atual no Multisite.
-- Atualizações e reativações preservam a identidade e a opção de acesso escolhidas.
+- Lista de membros com pesquisa, filtros, paginação e edição dos dados pessoais, contatos e vida na igreja.
+- Cadastro de famílias, endereço compartilhado e vínculo por parentesco.
+- Acesso para administrador WordPress, administrador pastoral e secretaria.
+- Formulário público independente do tema, mantendo o restante do site privado.
+- Cloudflare Turnstile ao final do formulário, obrigatório e validado no servidor.
+- Chaves configuráveis por igreja; segredo não aparece no formulário ou nas respostas públicas.
+- Envios entram como Visitante, com aceite registrado, sem criar conta ou vincular família automaticamente.
+- Proteção de repetição, limite de tentativas, nonce e campo armadilha.
+- Serviços de membros/famílias disponíveis para addons, com permissões e isolamento por site.
 
-Requer WordPress 6.5+ e PHP 8.1+.
+Configure Site key e Secret key em Igreja ERP → Cadastro público para liberar os envios.
+Requer WordPress 6.5+ e PHP 8.1+. Mantém banco 1.0.0, dados, identidade e atualizador nativo existentes.
 
-A restrição é aplicada a respostas geradas pelo WordPress. Mídias já públicas por URL direta e caches externos precisam de proteção no servidor. Não há cobrança, assinaturas ou provisionamento comercial nesta versão; esta entrega prepara a identidade e o isolamento por site para o SaaS.
+Esta versão é proposta na branch de desenvolvimento; o workflow só publica a release após integração em main e aprovação de todos os testes.

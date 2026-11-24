@@ -111,7 +111,7 @@ final class Membros
     /** Strict positive database ID, or zero for a new/unlinked record. */
     public static function parse_id(mixed $value): int|\WP_Error
     {
-        if (!is_scalar($value) || !preg_match('/^(0|[1-9][0-9]*)$/D', (string) $value) || strlen((string) $value) > strlen((string) PHP_INT_MAX) || (float) $value > PHP_INT_MAX) {
+        if ((!is_int($value) && !is_string($value)) || !preg_match('/^(0|[1-9][0-9]*)$/D', (string) $value) || strlen((string) $value) > strlen((string) PHP_INT_MAX) || (strlen((string) $value) === strlen((string) PHP_INT_MAX) && strcmp((string) $value, (string) PHP_INT_MAX) > 0)) {
             return self::error('Identificador inválido.');
         }
         return (int) $value;
@@ -166,7 +166,8 @@ final class Membros
         if (is_wp_error($out)) {
             return $out;
         }
-        if (trim((string) ($out['nome_completo'] ?? $old->nome_completo ?? '')) === '') {
+        $name = array_key_exists('nome_completo', $out) ? $out['nome_completo'] : ($old->nome_completo ?? '');
+        if (trim((string) $name) === '') {
             return self::error('Informe o nome completo.');
         }
         if (!empty($out['email']) && !is_email($out['email'])) {

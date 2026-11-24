@@ -3,7 +3,7 @@
  * Plugin Name: Igreja ERP Core
  * Plugin URI: https://github.com/paulommaeda/appshalom
  * Description: Base do App Shalom com identidade por igreja, acesso restrito, banco e permissões.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: App Shalom
@@ -13,7 +13,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('IGREJA_ERP_CORE_VERSION', '0.2.0');
+define('IGREJA_ERP_CORE_VERSION', '0.3.0');
 define('IGREJA_ERP_CORE_DB_VERSION', '1.0.0');
 define('IGREJA_ERP_CORE_FILE', __FILE__);
 define('IGREJA_ERP_CORE_DIR', plugin_dir_path(__FILE__));

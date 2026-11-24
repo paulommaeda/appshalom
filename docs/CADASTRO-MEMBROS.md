@@ -45,4 +45,4 @@ Hooks após persistência: `igreja_erp_membro_salvo($id, $blog_id)` e `igreja_er
 
 O workflow existente valida PHP 8.1 / WordPress 6.5.5, PHP 8.3 / WordPress atual e Multisite. Executa migrações, RBAC, configurações, os testes de membros/Turnstile e navegador mobile/desktop. A simulação HTTP do Turnstile é instalada somente no WordPress descartável de CI, nunca no ZIP do plugin.
 
-O pacote continua usando o atualizador nativo já existente. Push nesta branch não publica release. A versão estável permanece em `main`; antes de integrar uma nova versão, atualize os metadados de versão e as notas de release no mesmo PR, pois o workflow recusa substituir um ZIP já publicado com conteúdo diferente.
+O pacote continua usando o atualizador nativo já existente. Push nesta branch não publica release. A versão 0.3.0 está preparada neste PR, com seus metadados e notas. A versão estável em `main` permanece intacta até a integração; o workflow recusa substituir um ZIP já publicado com conteúdo diferente.

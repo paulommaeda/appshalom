@@ -42,6 +42,8 @@ foreach ([['id' => -1], ['id' => []], ['id' => '99999999999999999999'], ['data_n
     $expect(is_wp_error(Membros::salvar_membro(array_replace(['nome_completo' => 'Inválido'], $bad))), 'Rejeitar ' . json_encode($bad));
 }
 $expect(is_wp_error(Membros::salvar_membro(['nome_completo' => 'CPF duplicado', 'cpf' => '52998224725'])), 'CPF duplicado não altera original');
+$expect(is_wp_error(Membros::salvar_membro(['id' => $member, 'nome_completo' => ''])), 'Edição não pode apagar nome obrigatório');
+$expect(is_wp_error(Membros::parse_id('9223372036854775808')), 'Overflow de ID rejeitado sem arredondamento');
 $expect(is_int(Membros::salvar_membro(['nome_completo' => 'Sem CPF 1', 'cpf' => ''])) && is_int(Membros::salvar_membro(['nome_completo' => 'Sem CPF 2', 'cpf' => ''])), 'Vários CPFs ausentes permanecem NULL');
 $expect(Membros::salvar_membro(['id' => $member, 'familia_id' => 0]) === $member && Membros::get_by_id($member)->parentesco === null, 'Desvincular família limpa parentesco');
 
@@ -91,6 +93,15 @@ $mock_result['action'] = Registration::ACTION;
 $public = Membros::cadastrar_visitante(['id' => $member, 'wp_user_id' => $admin, 'familia_id' => $family, 'status' => 'Membro Ativo', 'nome_completo' => 'Visitante Público Integração', 'email' => 'public@example.org', 'lgpd_aceite' => '1'], 'valid-unique-token');
 $expect(is_int($public) && $public !== $member, 'Público só insere, nunca atualiza IDs fornecidos');
 $expect(is_wp_error(Registration::authorize_submission('valid-unique-token')), 'Repetição local bloqueada mesmo com Siteverify positivo');
+$_SERVER['REMOTE_ADDR'] = '192.0.2.88';
+for ($attempt = 0; $attempt < 20; $attempt++) {
+    $expect(Registration::authorize_submission('rate-' . $attempt) === true, 'Aceitar verificação dentro do limite ' . $attempt);
+}
+$expect(is_wp_error(Registration::authorize_submission('rate-limit-exceeded')), 'Limite de tentativas aplicado no servidor');
+add_option('igreja_erp_guard_expired_fixture', time() - 60, '', false);
+Registration::cleanup();
+$expect(get_option('igreja_erp_guard_expired_fixture', false) === false, 'Limpar guardas expiradas');
+$_SERVER['REMOTE_ADDR'] = '192.0.2.1';
 $expect(is_wp_error(Access::rest_gate(null)), 'Formulário não libera REST');
 wp_set_current_user($admin);
 $record = Membros::get_by_id($public);

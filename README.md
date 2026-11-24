@@ -2,9 +2,9 @@
 
 Repositório: https://github.com/paulommaeda/appshalom
 
-## Versão 0.2.0 — Identidade por igreja e acesso restrito
+## Versão 0.3.0 — Membros, famílias e cadastro público
 
-O Core entrega banco, permissões, atualização WordPress e, agora, configurações próprias da igreja. Esta versão antecipa a configuração institucional para preparar o produto como SaaS, antes de concluir as próximas etapas funcionais.
+O Core entrega banco, permissões, atualização WordPress, identidade por igreja e gestão de membros e famílias. O formulário público recebe cadastros sem abrir o restante do site privado.
 
 ### Configurações da igreja
 
@@ -78,7 +78,7 @@ Este fundamento não inclui planos, cobrança, licença comercial ou provisionam
 | erp_departamentos | Slug único; líder, vice, centro de custo e ativo indexados |
 | erp_departamento_equipe | Único em departamento + membro + função; índices por membro e departamento/ativo |
 
-Cinco tabelas com dbDelta e esquema 1.0.0. Relações são lógicas; a camada de serviços da próxima etapa validará os vínculos e as exclusões. CPF e wp_user_id ausentes devem ser NULL. Migrações verificam colunas e índices antes de avançar a versão, preservam dados e têm trava de concorrência.
+Cinco tabelas com dbDelta e esquema 1.0.0. Relações são lógicas; os serviços de membros e famílias validam os vínculos no site atual. CPF e wp_user_id ausentes devem ser NULL. Migrações verificam colunas e índices antes de avançar a versão, preservam dados e têm trava de concorrência.
 
 | Perfil | Permissões do Core |
 | --- | --- |
@@ -102,11 +102,12 @@ Add-ons podem registrar ações pelo filtro igreja_erp_rbac_acoes e validar seus
 | --- | --- |
 | 1 — concluída | Bootstrap, banco, RBAC e atualização WordPress |
 | Atualização 0.2.0 | Configuração institucional, identidade e acesso restrito por igreja |
-| 2 — próxima | Serviços de membros/famílias, departamentos/equipes, centros de custo e EventBus |
+| Atualização 0.3.0 | Serviços e telas administrativas de membros/famílias e formulário público com Turnstile |
+| 2 — restante | Serviços de departamentos/equipes, centros de custo e EventBus |
 | 3 | Portal mobile, views e assets dos cadastros |
 | 4 | REST dos módulos, seed, PDF, WhatsApp e exemplo de add-on |
 
-O portal de cadastros e os add-ons ainda não são entregues nesta versão. Add-ons devem aguardar igreja_erp_core_loaded e conferir as classes e a versão mínima de que precisam.
+A gestão de cadastros usa o painel WordPress nesta versão. O portal dos membros e os add-ons serão desenvolvidos nas próximas etapas. Add-ons devem aguardar igreja_erp_core_loaded e conferir as classes e a versão mínima de que precisam.
 
 ## Desenvolvimento
 
@@ -117,9 +118,8 @@ O workflow valida PHP, pacote determinístico, migrações, RBAC, isolamento Mul
 Use python3 scripts/package.py para gerar o ZIP. Inclui bootstrap, classes, views, assets e licenças; não inclui testes. A release é criada em main somente depois das verificações.
 
 Para publicar, incremente o cabeçalho, a constante de versão, update.json e as notas. Incremente o esquema ou a versão RBAC somente quando seus respectivos contratos mudarem.
-# Cadastro de membros e famílias
+## Cadastro de membros e famílias
 
 O Core agora oferece listagem e edição de membros, vínculos familiares, situação na igreja e formulário público com Cloudflare Turnstile. Configure em **Igreja ERP → Cadastro público**. O link funciona mesmo com o restante do site privado; as duas chaves Turnstile são obrigatórias para receber envios. Novos cadastros públicos entram como visitantes e não criam contas de acesso.
 
 Veja [uso, permissões, segurança e serviços para addons](docs/CADASTRO-MEMBROS.md).
-
