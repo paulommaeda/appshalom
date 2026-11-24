@@ -1,0 +1,55 @@
+<?php
+use IgrejaERP\Core\Membros;
+use IgrejaERP\Core\Registration;
+use IgrejaERP\Core\Settings;
+use IgrejaERP\Membros\MemberTransfer;
+if (!defined('WP_CLI') || !WP_CLI || getenv('IGREJA_ERP_TEST_ENV') !== '1') { throw new RuntimeException('Somente ambiente descartável.'); }
+$checks = 0;
+$expect = static function ($value, $message) use (&$checks): void { ++$checks; if (!$value) { throw new RuntimeException('FALHA ENDEREÇO: ' . $message); } };
+$admin = (int) get_user_by('login', 'tests')->ID;
+wp_set_current_user($admin);
+$address = ['cep' => '01001000', 'logradouro' => 'Praça da Sé', 'numero' => '100', 'complemento' => 'Sala 2', 'bairro' => 'Sé', 'cidade' => 'São Paulo', 'uf' => 'sp'];
+$family = Membros::salvar_familia(['nome_familia' => 'Família Endereço', 'logradouro' => 'Endereço da família', 'cidade' => 'Curitiba', 'uf' => 'PR']);
+$id = Membros::salvar_membro(['nome_completo' => 'Membro Endereço', 'email' => 'endereco@example.org', 'familia_id' => $family] + $address);
+$expect(is_int($id), 'Salvar endereço próprio');
+$member = Membros::get_by_id($id);
+$expect($member->cep === '01001-000' && $member->uf === 'SP', 'Normalizar CEP e UF');
+$expect($member->numero === '100' && $member->complemento === 'Sala 2', 'Número e complemento persistidos');
+$expect(Membros::get_familia($family)['familia']->logradouro === 'Endereço da família', 'Endereço individual não sobrescreve família');
+Membros::salvar_membro(['id' => $id, 'nome_social_apelido' => 'Endereço preservado']);
+$expect(Membros::get_by_id($id)->logradouro === 'Praça da Sé', 'Edição parcial preserva endereço');
+foreach ([['cep' => '123'], ['cep' => 'ABC010010'], ['uf' => 'XX'], ['cep' => ['01001000']], ['cidade' => str_repeat('x', 101)]] as $bad) {
+    $expect(is_wp_error(Membros::salvar_membro(['id' => $id] + $bad)), 'Rejeitar endereço inválido');
+}
+$old = Registration::settings();
+$legacy = $old;
+unset($legacy['fields']['cep'], $legacy['fields']['logradouro'], $legacy['fields']['numero'], $legacy['fields']['complemento'], $legacy['fields']['bairro'], $legacy['fields']['cidade'], $legacy['fields']['uf']);
+$legacy['fields']['profissao'] = false;
+update_option(Registration::OPTION, $legacy, false);
+$expect(Registration::field_enabled('cep') && Registration::field_enabled('logradouro') && !Registration::field_enabled('profissao'), 'Atualização exibe endereço e preserva escolhas anteriores');
+$public = Registration::settings();
+$public['captcha_enabled'] = false;
+update_option(Registration::OPTION, $public, false);
+wp_set_current_user(0);
+$new = Membros::cadastrar_visitante(['nome_completo' => 'Endereço Público', 'email' => 'public-address@example.org', 'lgpd_aceite' => '1'] + $address, '');
+$expect(is_int($new), 'Endereço aceito no público sem CAPTCHA');
+wp_set_current_user($admin);
+$expect(Membros::get_by_id($new)->cidade === 'São Paulo', 'Endereço público salvo no membro');
+$public['fields']['cep'] = false;
+$public['fields']['logradouro'] = false;
+update_option(Registration::OPTION, $public, false);
+wp_set_current_user(0);
+$hidden = Membros::cadastrar_visitante(['nome_completo' => 'Endereço Oculto', 'email' => 'hidden-address@example.org', 'lgpd_aceite' => '1', 'cep' => ['invalid'], 'logradouro' => 'NAO GRAVAR'], '');
+$expect(is_int($hidden), 'Endereço oculto não é validado nem aceito');
+wp_set_current_user($admin);
+$expect(Membros::get_by_id($hidden)->cep === null && Membros::get_by_id($hidden)->logradouro === null, 'Servidor ignora campos de endereço desativados');
+update_option(Registration::OPTION, $old, false);
+$header = array_merge(['nome_completo', 'email'], array_keys(Membros::ADDRESS));
+$csv = MemberTransfer::csv([$header, array_merge(['Importado Endereço', 'csv-address@example.org'], array_values($address))]);
+$plan = MemberTransfer::preview($csv);
+$expect(!is_wp_error($plan) && !is_wp_error(MemberTransfer::apply($plan)), 'Importar endereço CSV');
+$found = Membros::listar_membros(['busca' => 'csv-address@example.org'])['items'][0];
+$expect($found->logradouro === 'Praça da Sé' && $found->complemento === 'Sala 2' && $found->cep === '01001-000', 'Endereço importado preservado');
+$export = MemberTransfer::export();
+$expect(str_contains($export, 'cep;logradouro;numero;complemento;bairro;cidade;uf') && str_contains($export, 'Sala 2'), 'Endereço incluído na exportação');
+WP_CLI::success($checks . ' verificações de endereço passaram.');

@@ -20,6 +20,13 @@ final class Registration
             'profissao' => ['label' => 'Profissão', 'type' => 'text', 'max' => 120, 'autocomplete' => 'organization-title'],
             'sexo' => ['label' => 'Sexo', 'type' => 'select', 'options' => ['M' => 'Masculino', 'F' => 'Feminino']],
             'estado_civil' => ['label' => 'Estado civil', 'type' => 'select', 'options' => array_combine(Membros::ESTADOS_CIVIS, Membros::ESTADOS_CIVIS)],
+            'cep' => ['label' => 'CEP', 'type' => 'text', 'max' => 9, 'autocomplete' => 'postal-code', 'section' => 'address'],
+            'logradouro' => ['label' => 'Rua / avenida', 'type' => 'text', 'max' => 200, 'autocomplete' => 'address-line1', 'section' => 'address'],
+            'numero' => ['label' => 'Número', 'type' => 'text', 'max' => 30, 'autocomplete' => 'off', 'section' => 'address'],
+            'complemento' => ['label' => 'Complemento', 'type' => 'text', 'max' => 100, 'autocomplete' => 'address-line2', 'section' => 'address'],
+            'bairro' => ['label' => 'Bairro', 'type' => 'text', 'max' => 100, 'autocomplete' => 'address-level3', 'section' => 'address'],
+            'cidade' => ['label' => 'Cidade', 'type' => 'text', 'max' => 100, 'autocomplete' => 'address-level2', 'section' => 'address'],
+            'uf' => ['label' => 'Estado (UF)', 'type' => 'text', 'max' => 2, 'autocomplete' => 'address-level1', 'section' => 'address'],
         ];
     }
 
@@ -38,7 +45,8 @@ final class Registration
         $value = is_array($value) ? $value : [];
         $defaults = ['enabled' => true, 'site_key' => '', 'secret_key' => '', 'captcha_enabled' => !empty($value['site_key']) || !empty($value['secret_key']), 'fields' => array_fill_keys(array_keys(self::fields()), true)];
         $settings = array_replace($defaults, $value);
-        $settings['fields'] = self::normalize_fields($settings['fields']);
+        $stored_fields = !array_key_exists('fields', $value) ? $defaults['fields'] : (is_array($value['fields']) && $value['fields'] ? array_replace(array_fill_keys(array_keys(Membros::ADDRESS), true), $value['fields']) : []);
+        $settings['fields'] = self::normalize_fields($stored_fields);
         return $settings;
     }
 

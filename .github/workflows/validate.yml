@@ -104,6 +104,8 @@ jobs:
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/members.php" --path="$RUNNER_TEMP/wordpress"
       - name: Testar importação, aprovação, homônimos e convites
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/accounts-transfer.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Testar endereço individual, campos públicos e CSV
+        run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/address.php" --path="$RUNNER_TEMP/wordpress"
       - name: Preparar navegador e servidor local
         run: |
           npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --ignore-scripts --no-audit --no-fund @playwright/test@1.65.1
@@ -117,6 +119,10 @@ jobs:
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
         run: node tests/members.browser.cjs
+      - name: Testar consulta de CEP e endereço no navegador
+        env:
+          IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
+        run: node tests/address.browser.cjs
       - name: Testar importação e definição de senha no navegador
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test

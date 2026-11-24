@@ -1,7 +1,5 @@
-Igreja ERP Core 0.5.0 — Importação e exportação de dados.
+Igreja ERP Core 0.6.0 — Endereço individual dos membros.
 
-- Área Igreja ERP → Importar / exportar, com permissões, prévia e confirmação.
-- Configurações em JSON, incluindo identidade e campos dos addons ativos.
-- Segredos e identificadores internos não são transferidos; logos por URL.
-- Addon Membros 0.2.0 fornece CSV de membros com dados pessoais e vínculos familiares.
-- Banco 1.1.0 registra aprovação e estado dos convites, preservando os cadastros.
+- Banco 1.2.0 acrescenta CEP, logradouro, número, complemento, bairro, cidade e UF no membro.
+- Endereços de famílias e os demais dados existentes são preservados.
+- Compatível com o addon Membros 0.3.0 e sua importação/exportação de endereços.

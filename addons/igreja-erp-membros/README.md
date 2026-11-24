@@ -1,6 +1,6 @@
-# Igreja ERP — Membros 0.2.0
+# Igreja ERP — Membros 0.3.0
 
-Plugin independente para membros, famílias e formulário público. Requer Igreja ERP Core 0.5.0 ou superior.
+Plugin independente para membros, famílias e formulário público. Requer Igreja ERP Core 0.6.0 ou superior.
 
 Instale o Core atualizado e depois este ZIP. Ative ou desative em Plugins ou Igreja ERP → Addons. Desativar preserva as mesmas tabelas e opções já utilizadas pelo Core 0.3.0. A ativação não cria nem duplica os dados.
 
@@ -15,3 +15,5 @@ Atualizações nativas do WordPress usam o manifesto addons/igreja-erp-membros/u
 Importe e exporte CSV em Igreja ERP → Importar / exportar. Novos registros ficam pendentes até aprovação em Membros. A aprovação exige e-mail válido, cria um usuário erp_membro e envia convite para definir senha. Reaprovar não duplica contas nem convites. O botão Reenviar convite invalida o link anterior. Falhas do serviço de e-mail ficam registradas para nova tentativa. O convite usa nome, logo e cores da igreja atual.
 
 Aprovação e situação eclesiástica são independentes: aprovar um Visitante libera sua conta sem convertê-lo automaticamente em Membro Ativo. Exportações não contêm senha, chave de redefinição, contas WP ou estado de aprovação; a importação não cria privilégios nem fabrica evidências de aceite do formulário.
+
+Endereço individual inclui CEP, rua/avenida, número, complemento, bairro, cidade e UF, disponível também no CSV e no formulário público. A consulta ViaCEP é feita pelo navegador e só usa o CEP; os campos permanecem editáveis e o preenchimento manual funciona quando a consulta falha. Número e complemento não são substituídos pela consulta.

@@ -9,7 +9,7 @@ defined('ABSPATH') || exit;
 
 final class MemberTransfer
 {
-    public const FIELDS = ['nome_completo', 'nome_social_apelido', 'data_nascimento', 'sexo', 'estado_civil', 'cpf', 'rg', 'email', 'celular_whatsapp', 'profissao', 'escolaridade', 'status', 'data_conversao', 'data_batismo', 'forma_recepcao', 'igreja_origem', 'parentesco'];
+    public const FIELDS = ['nome_completo', 'nome_social_apelido', 'data_nascimento', 'sexo', 'estado_civil', 'cpf', 'rg', 'email', 'celular_whatsapp', 'profissao', 'escolaridade', 'status', 'data_conversao', 'data_batismo', 'forma_recepcao', 'igreja_origem', 'parentesco', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'];
 
     public static function register(): void
     {
@@ -20,7 +20,7 @@ final class MemberTransfer
             }
             $settings = Registration::settings();
             $settings['enabled'] = $input['enabled'];
-            $settings['fields'] = Registration::normalize_fields($input['fields']);
+            $settings['fields'] = Registration::normalize_fields(array_replace(Registration::settings()['fields'], $input['fields']));
             return $settings;
         });
     }

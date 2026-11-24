@@ -5,6 +5,8 @@ defined('ABSPATH') || exit;
 /** Current-site services shared with add-ons. Reads and writes enforce Core caps. */
 final class Membros
 {
+    public const ADDRESS = ['cep' => 9, 'logradouro' => 200, 'numero' => 30, 'complemento' => 100, 'bairro' => 100, 'cidade' => 100, 'uf' => 2];
+    public const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
     public const STATUS = ['Membro Ativo', 'Congregado', 'Visitante', 'Criança/Adolescente', 'Em Discipulado', 'Disciplina', 'Transferido', 'Inativo'];
     public const PARENTESCOS = ['Titular', 'Conjuge', 'Filho(a)', 'Outro'];
     public const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'];
@@ -166,9 +168,18 @@ final class Membros
 
     private static function member_data(array $input, ?object $old): array|\WP_Error
     {
-        $out = self::texts($input, ['nome_completo' => 180, 'nome_social_apelido' => 100, 'sexo' => 1, 'estado_civil' => 30, 'rg' => 25, 'email' => 150, 'celular_whatsapp' => 20, 'profissao' => 120, 'escolaridade' => 60, 'parentesco' => 30, 'status' => 40, 'forma_recepcao' => 50, 'igreja_origem' => 150]);
+        $out = self::texts($input, ['nome_completo' => 180, 'nome_social_apelido' => 100, 'sexo' => 1, 'estado_civil' => 30, 'rg' => 25, 'email' => 150, 'celular_whatsapp' => 20, 'profissao' => 120, 'escolaridade' => 60, 'parentesco' => 30, 'status' => 40, 'forma_recepcao' => 50, 'igreja_origem' => 150] + self::ADDRESS);
         if (is_wp_error($out)) {
             return $out;
+        }
+        if (!empty($out['cep'])) {
+            if (!preg_match('/^[0-9]{5}-?[0-9]{3}$/D', $out['cep'])) { return self::error('Informe um CEP com oito números.'); }
+            $cep = str_replace('-', '', $out['cep']);
+            $out['cep'] = substr($cep, 0, 5) . '-' . substr($cep, 5);
+        }
+        if (!empty($out['uf'])) {
+            $out['uf'] = strtoupper($out['uf']);
+            if (!in_array($out['uf'], self::UFS, true)) { return self::error('Informe uma UF válida.'); }
         }
         $name = array_key_exists('nome_completo', $out) ? $out['nome_completo'] : ($old->nome_completo ?? '');
         if (trim((string) $name) === '') {

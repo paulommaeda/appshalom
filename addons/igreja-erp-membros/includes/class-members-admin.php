@@ -27,6 +27,7 @@ final class MembersAdmin
         }
         wp_enqueue_style('igreja-erp-members', IGREJA_ERP_MEMBROS_URL . 'assets/css/members.css', [], IGREJA_ERP_MEMBROS_VERSION);
         wp_add_inline_style('igreja-erp-members', Settings::css_variables());
+        wp_enqueue_script('igreja-erp-address', IGREJA_ERP_MEMBROS_URL . 'assets/js/address.js', [], IGREJA_ERP_MEMBROS_VERSION, true);
         wp_enqueue_script('igreja-erp-members', IGREJA_ERP_MEMBROS_URL . 'assets/js/members.js', [], IGREJA_ERP_MEMBROS_VERSION, true);
         wp_localize_script('igreja-erp-members', 'igrejaMembers', ['ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('igreja_erp_search_families')]);
     }
@@ -141,7 +142,7 @@ final class MembersAdmin
     public static function input(array $values, string $prefix, string $key, string $label, string $type = 'text', int $limit = 180, bool $required = false): void
     {
         $value = is_scalar($values[$key] ?? null) ? (string) $values[$key] : '';
-        echo '<label class="igreja-field">' . esc_html($label) . '<input type="' . esc_attr($type) . '" name="' . esc_attr($prefix . '[' . $key . ']') . '" value="' . esc_attr($value) . '" maxlength="' . (int) $limit . '"' . ($required ? ' required' : '') . ($type === 'date' ? ' min="1900-01-01" max="' . esc_attr(current_time('Y-m-d')) . '"' : '') . '></label>';
+        echo '<label class="igreja-field">' . esc_html($label) . '<input type="' . esc_attr($type) . '" name="' . esc_attr($prefix . '[' . $key . ']') . '" value="' . esc_attr($value) . '" maxlength="' . (int) $limit . '"' . (isset(Membros::ADDRESS[$key]) ? ' data-address-field="' . esc_attr($key) . '"' . ($key === 'cep' ? ' inputmode="numeric" autocomplete="postal-code"' : '') : '') . ($required ? ' required' : '') . ($type === 'date' ? ' min="1900-01-01" max="' . esc_attr(current_time('Y-m-d')) . '"' : '') . '></label>';
     }
 
     public static function select(array $values, string $key, string $label, array $options, bool $required = false): void

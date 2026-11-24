@@ -24,7 +24,10 @@ self::input($values, 'membro', 'email', 'E-mail', 'email', 150);
 self::input($values, 'membro', 'celular_whatsapp', 'WhatsApp com DDD', 'tel', 20);
 self::input($values, 'membro', 'profissao', 'Profissão', 'text', 120);
 self::input($values, 'membro', 'escolaridade', 'Escolaridade', 'text', 60); ?>
-</div><h3>Vida na igreja</h3><div class="igreja-grid">
+</div><section data-igreja-address><h3>Endereço</h3><div class="igreja-grid">
+<?php foreach (['cep' => 'CEP', 'logradouro' => 'Rua / avenida', 'numero' => 'Número', 'complemento' => 'Complemento', 'bairro' => 'Bairro', 'cidade' => 'Cidade', 'uf' => 'Estado (UF)'] as $key => $label) { self::input($values, 'membro', $key, $label, 'text', Membros::ADDRESS[$key]); } ?>
+</div><p><button type="button" class="button" data-address-lookup>Consultar CEP</button></p><p class="igreja-hint" data-address-status role="status" aria-live="polite">Digite o CEP para preencher o endereço. Número e complemento devem ser informados por você.</p></section>
+<h3>Vida na igreja</h3><div class="igreja-grid">
 <?php self::select($values, 'status', 'Situação *', array_combine(Membros::STATUS, Membros::STATUS), true);
 self::input($values, 'membro', 'data_conversao', 'Data de conversão', 'date', 10);
 self::input($values, 'membro', 'data_batismo', 'Data de batismo', 'date', 10);
