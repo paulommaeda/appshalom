@@ -42,6 +42,7 @@ jobs:
       IGREJA_ERP_TEST_ENV: '1'
       WP_VERSION: ${{ matrix.wordpress }}
       IGREJA_MULTISITE: ${{ matrix.multisite }}
+      IGREJA_INVITE_FILE: ${{ runner.temp }}/igreja-invite.json
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
@@ -100,6 +101,8 @@ jobs:
           fi
       - name: Testar membros, famílias e Turnstile no servidor
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/members.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Testar importação, aprovação, homônimos e convites
+        run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/accounts-transfer.php" --path="$RUNNER_TEMP/wordpress"
       - name: Preparar navegador e servidor local
         run: |
           npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --ignore-scripts --no-audit --no-fund @playwright/test@1.65.1
@@ -113,6 +116,10 @@ jobs:
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
         run: node tests/members.browser.cjs
+      - name: Testar importação e definição de senha no navegador
+        env:
+          IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
+        run: node tests/transfer.browser.cjs
       - name: Testar ativação e desativação dos addons no navegador
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test

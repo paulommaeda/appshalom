@@ -71,6 +71,10 @@ final class Membros
             $where[] = 'status = %s';
             $args[] = $filters['status'];
         }
+        if (isset($filters['aprovado']) && in_array($filters['aprovado'], ['0', '1'], true)) {
+            $where[] = 'aprovado = %d';
+            $args[] = (int) $filters['aprovado'];
+        }
         if (!empty($filters['familia_id'])) {
             $where[] = 'familia_id = %d';
             $args[] = absint($filters['familia_id']);
@@ -238,7 +242,13 @@ final class Membros
         return $out;
     }
 
-    public static function salvar_membro(array $input): int|\WP_Error
+    public static function validar_importacao(array $input, int $id = 0): array|\WP_Error
+    {
+        if (!current_user_can('erp_gerenciar_membros')) { return self::error('Acesso não autorizado.'); }
+        return self::member_data($input, $id ? self::raw_member($id) : null);
+    }
+
+    public static function salvar_membro(array $input, bool $emit = true): int|\WP_Error
     {
         if (!current_user_can('erp_gerenciar_membros')) {
             return new \WP_Error('igreja_erp_sem_permissao', 'Você não tem permissão para cadastrar membros.');
@@ -252,10 +262,10 @@ final class Membros
             return self::error('Cadastro não encontrado nesta igreja.');
         }
         $data = self::member_data($input, $old);
-        return is_wp_error($data) ? $data : self::persist_member($id, $data);
+        return is_wp_error($data) ? $data : self::persist_member($id, $data, $emit);
     }
 
-    private static function persist_member(int $id, array $data): int|\WP_Error
+    private static function persist_member(int $id, array $data, bool $emit = true): int|\WP_Error
     {
         global $wpdb;
         // UNIQUE constraints also cover concurrent requests; absent CPF/user remain NULL.
@@ -269,7 +279,7 @@ final class Membros
             return self::error('Não foi possível salvar. Verifique se já existe um cadastro com esse CPF ou conta.');
         }
         $id = $id ?: (int) $wpdb->insert_id;
-        do_action('igreja_erp_membro_salvo', $id, get_current_blog_id());
+        if ($emit) { do_action('igreja_erp_membro_salvo', $id, get_current_blog_id()); }
         return $id;
     }
 
@@ -297,7 +307,7 @@ final class Membros
         return self::persist_member(0, $data);
     }
 
-    public static function salvar_familia(array $input): int|\WP_Error
+    public static function salvar_familia(array $input, bool $emit = true): int|\WP_Error
     {
         global $wpdb;
         if (!current_user_can('erp_gerenciar_familias')) {
@@ -334,7 +344,7 @@ final class Membros
             return self::error('Não foi possível salvar a família.');
         }
         $id = $id ?: (int) $wpdb->insert_id;
-        do_action('igreja_erp_familia_salva', $id, get_current_blog_id());
+        if ($emit) { do_action('igreja_erp_familia_salva', $id, get_current_blog_id()); }
         return $id;
     }
 }

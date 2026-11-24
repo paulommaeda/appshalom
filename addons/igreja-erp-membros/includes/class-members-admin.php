@@ -66,7 +66,7 @@ final class MembersAdmin
         }
         $editing = $can_edit && (self::query('novo') === '1' || $id || $notice);
         $values = array_replace($record ? (array) $record : ['status' => 'Membro Ativo'], $notice['values'] ?? []);
-        $filters = ['busca' => self::query('busca'), 'status' => self::query('status'), 'familia_id' => absint(self::query('familia_id')), 'page' => absint(self::query('pagina') ?: '1')];
+        $filters = ['aprovado' => self::query('aprovado'), 'busca' => self::query('busca'), 'status' => self::query('status'), 'familia_id' => absint(self::query('familia_id')), 'page' => absint(self::query('pagina') ?: '1')];
         $list = Membros::listar_membros($filters);
         require IGREJA_ERP_MEMBROS_DIR . 'includes/views/view-admin-members.php';
     }
