@@ -117,3 +117,9 @@ O workflow valida PHP, pacote determinístico, migrações, RBAC, isolamento Mul
 Use python3 scripts/package.py para gerar o ZIP. Inclui bootstrap, classes, views, assets e licenças; não inclui testes. A release é criada em main somente depois das verificações.
 
 Para publicar, incremente o cabeçalho, a constante de versão, update.json e as notas. Incremente o esquema ou a versão RBAC somente quando seus respectivos contratos mudarem.
+# Cadastro de membros e famílias
+
+O Core agora oferece listagem e edição de membros, vínculos familiares, situação na igreja e formulário público com Cloudflare Turnstile. Configure em **Igreja ERP → Cadastro público**. O link funciona mesmo com o restante do site privado; as duas chaves Turnstile são obrigatórias para receber envios. Novos cadastros públicos entram como visitantes e não criam contas de acesso.
+
+Veja [uso, permissões, segurança e serviços para addons](docs/CADASTRO-MEMBROS.md).
+

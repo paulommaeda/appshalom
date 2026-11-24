@@ -27,6 +27,9 @@ spl_autoload_register(static function ($class) {
         'IgrejaERP\\Core\\Updater' => 'includes/class-updater.php',
         'IgrejaERP\\Core\\Settings' => 'includes/class-settings.php',
         'IgrejaERP\\Core\\Access' => 'includes/class-access.php',
+        'IgrejaERP\\Core\\Membros' => 'includes/class-membros.php',
+        'IgrejaERP\\Core\\MembersAdmin' => 'includes/class-members-admin.php',
+        'IgrejaERP\\Core\\Registration' => 'includes/class-registration.php',
     ];
     if (isset($map[$class])) {
         require_once IGREJA_ERP_CORE_DIR . $map[$class];
@@ -85,6 +88,8 @@ add_action('plugins_loaded', static function () {
         return;
     }
     \IgrejaERP\Core\RBAC::maybe_upgrade();
+    \IgrejaERP\Core\MembersAdmin::register();
+    \IgrejaERP\Core\Registration::register();
     /** Infrastructure ready; add-ons must check their minimum required Core version. */
     do_action('igreja_erp_core_loaded', IGREJA_ERP_CORE_VERSION);
 }, 5);

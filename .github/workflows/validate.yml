@@ -84,6 +84,8 @@ jobs:
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/integration.php" --path="$RUNNER_TEMP/wordpress"
       - name: Testar configurações e isolamento por igreja
         run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/settings.php" --path="$RUNNER_TEMP/wordpress"
+      - name: Testar membros, famílias e Turnstile no servidor
+        run: php "$RUNNER_TEMP/wp-cli.phar" eval-file "$GITHUB_WORKSPACE/tests/members.php" --path="$RUNNER_TEMP/wordpress"
       - name: Preparar navegador e servidor local
         run: |
           npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --ignore-scripts --no-audit --no-fund @playwright/test@1.65.1
@@ -93,6 +95,10 @@ jobs:
         env:
           IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
         run: node tests/branding.browser.cjs
+      - name: Testar gestão de membros e formulário público no navegador
+        env:
+          IGREJA_PLAYWRIGHT: ${{ runner.temp }}/browser/node_modules/@playwright/test
+        run: node tests/members.browser.cjs
       - name: Mostrar diagnóstico HTTP em caso de falha
         if: failure()
         run: tail -n 80 "$RUNNER_TEMP/wordpress-http.log" || true

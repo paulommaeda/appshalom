@@ -40,6 +40,9 @@ final class Access
             return;
         }
         nocache_headers();
+        if (has_action('template_redirect', [Registration::class, 'page']) !== false && Registration::is_public_request()) {
+            return;
+        }
         if (!is_user_logged_in()) {
             auth_redirect();
             exit;
