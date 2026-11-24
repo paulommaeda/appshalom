@@ -1,7 +1,7 @@
-Igreja ERP Core 0.4.0 — Core com addons independentes.
+Igreja ERP Core 0.5.0 — Importação e exportação de dados.
 
-- Membros, famílias e formulário separados no plugin Igreja ERP — Membros 0.1.0.
-- Área Igreja ERP → Addons para ativar e desativar plugins instalados.
-- Extensão segura de rotas públicas para addons ativos.
-- Banco, permissões e configurações existentes preservados.
-- Instale e ative o addon Membros depois de atualizar o Core.
+- Área Igreja ERP → Importar / exportar, com permissões, prévia e confirmação.
+- Configurações em JSON, incluindo identidade e campos dos addons ativos.
+- Segredos e identificadores internos não são transferidos; logos por URL.
+- Addon Membros 0.2.0 fornece CSV de membros com dados pessoais e vínculos familiares.
+- Banco 1.1.0 registra aprovação e estado dos convites, preservando os cadastros.

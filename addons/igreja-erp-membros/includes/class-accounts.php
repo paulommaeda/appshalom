@@ -132,7 +132,8 @@ final class Accounts
         foreach (array_unique($ids, SORT_REGULAR) as $raw) {
             $id = Membros::parse_id($raw);
             $result = is_wp_error($id) ? $id : self::approve($id, ($_POST['resend'] ?? '') === '1');
-            $messages[] = is_wp_error($result) ? $result->get_error_message() : $result['message'];
+            $member = !is_wp_error($id) ? Membros::get_by_id($id) : null;
+            $messages[] = ($member ? $member->nome_completo . ': ' : '') . (is_wp_error($result) ? $result->get_error_message() : $result['message']);
         }
         set_transient('igreja_erp_account_notice_' . get_current_user_id(), $messages, 120);
         wp_safe_redirect(admin_url('admin.php?page=igreja-erp-membros'));

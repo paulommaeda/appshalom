@@ -65,6 +65,7 @@ final class Transfer
         }
         $options = [];
         $before = [];
+        $rows = [];
         foreach ($packet['data'] as $key => $input) {
             if (!isset(self::$settings[$key])) {
                 return new \WP_Error('transfer_addon', 'Configuração não reconhecida: ' . sanitize_text_field((string) $key) . '. Ative o addon correspondente.');
@@ -74,8 +75,14 @@ final class Transfer
             if (is_wp_error($clean)) { return $clean; }
             $options[$provider['option']] = $clean;
             $before[$provider['option']] = hash('sha256', wp_json_encode(get_option($provider['option'], null)));
+            $rows[] = $key;
+            if ($key === 'igreja') {
+                $rows[] = 'Nome: ' . ($clean['nome_curto'] ?? '');
+                $rows[] = 'Acesso ao site: ' . (!empty($clean['restrito']) ? 'restrito a logados' : 'público');
+                $rows[] = 'Logo: ' . ($clean['logo_url'] ?: 'sem imagem');
+            }
         }
-        return ['options' => $options, 'before' => $before, 'summary' => count($options) . ' grupo(s) de configurações serão aplicados.', 'rows' => array_keys($packet['data'])];
+        return ['options' => $options, 'before' => $before, 'summary' => count($options) . ' grupo(s) de configurações serão aplicados.', 'rows' => $rows];
     }
 
     public static function apply_settings(array $plan): array|\WP_Error

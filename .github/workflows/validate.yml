@@ -42,7 +42,6 @@ jobs:
       IGREJA_ERP_TEST_ENV: '1'
       WP_VERSION: ${{ matrix.wordpress }}
       IGREJA_MULTISITE: ${{ matrix.multisite }}
-      IGREJA_INVITE_FILE: ${{ runner.temp }}/igreja-invite.json
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
@@ -50,6 +49,8 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: mysqli, mbstring, zip
           coverage: none
+      - name: Configurar captura de convites de teste
+        run: printf 'IGREJA_INVITE_FILE=%s/igreja-invite.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Validar sintaxe PHP
         run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
       - name: Gerar e validar pacote

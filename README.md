@@ -2,9 +2,9 @@
 
 Repositório: https://github.com/paulommaeda/appshalom
 
-## Versão 0.4.0 — Core e addons independentes
+## Versão 0.5.0 — Transferência de dados e convites
 
-O Core entrega banco, permissões, atualização WordPress, identidade por igreja e acesso privado. Membros, famílias e formulário público ficam no plugin independente **Igreja ERP — Membros 0.1.0**, ativável em Plugins ou Igreja ERP → Addons.
+O Core entrega banco, permissões, atualização WordPress, identidade por igreja e acesso privado. Membros, famílias e formulário público ficam no plugin independente **Igreja ERP — Membros 0.2.0**, ativável em Plugins ou Igreja ERP → Addons.
 
 ### Configurações da igreja
 
@@ -30,7 +30,7 @@ Requer **WordPress 6.5+**, **PHP 8.1+** e MySQL/MariaDB compatível com WordPres
 1. Baixe o ZIP instalável em Releases.
 2. Use Plugins → Adicionar plugin → Enviar plugin e ative Igreja ERP Core.
 3. O site passa a exigir login e as configurações iniciais são preparadas.
-4. Para os cadastros, instale também o ZIP igreja-erp-membros-0.1.0.zip e ative o addon.
+4. Para os cadastros, instale também o ZIP igreja-erp-membros-0.2.0.zip e ative o addon.
 5. Personalize em Igreja ERP → Configurações.
 6. Para novas versões, use Painel → Atualizações ou Verificar atualizações na linha de cada plugin. As versões do Core e dos addons são independentes.
 
@@ -79,7 +79,7 @@ Este fundamento não inclui planos, cobrança, licença comercial ou provisionam
 | erp_departamentos | Slug único; líder, vice, centro de custo e ativo indexados |
 | erp_departamento_equipe | Único em departamento + membro + função; índices por membro e departamento/ativo |
 
-Cinco tabelas com dbDelta e esquema 1.0.0. Relações são lógicas; os serviços de membros e famílias validam os vínculos no site atual. CPF e wp_user_id ausentes devem ser NULL. Migrações verificam colunas e índices antes de avançar a versão, preservam dados e têm trava de concorrência.
+Cinco tabelas com dbDelta e esquema 1.1.0. Relações são lógicas; os serviços de membros e famílias validam os vínculos no site atual. CPF e wp_user_id ausentes devem ser NULL. Migrações verificam colunas e índices antes de avançar a versão, preservam dados e têm trava de concorrência.
 
 | Perfil | Permissões do Core |
 | --- | --- |
@@ -103,7 +103,7 @@ Add-ons podem registrar ações pelo filtro igreja_erp_rbac_acoes e validar seus
 | --- | --- |
 | 1 — concluída | Bootstrap, banco, RBAC e atualização WordPress |
 | Atualização 0.2.0 | Configuração institucional, identidade e acesso restrito por igreja |
-| Addon Membros 0.1.0 / Core 0.4.0 | Plugin independente de membros/famílias e formulário público configurável com Turnstile opcional |
+| Addon Membros 0.2.0 / Core 0.4.0 | Plugin independente de membros/famílias e formulário público configurável com Turnstile opcional |
 | 2 — restante | Serviços de departamentos/equipes, centros de custo e EventBus |
 | 3 | Portal mobile, views e assets dos cadastros |
 | 4 | REST dos módulos, seed, PDF, WhatsApp e exemplo de add-on |
@@ -126,3 +126,13 @@ O addon **Igreja ERP — Membros** oferece listagem e edição de membros, vínc
 Desativar o addon remove suas telas e a rota pública, preservando os cadastros e as opções. O Core continua funcionando. Atualizar do Core 0.3.0 para 0.4.0 exige instalar o addon para voltar a acessar os cadastros; os dados permanecem nas mesmas tabelas.
 
 Veja [uso, permissões, segurança e serviços para addons](docs/CADASTRO-MEMBROS.md).
+
+## Importação, exportação e acesso dos membros
+
+Em Igreja ERP → Importar / exportar, baixe configurações JSON ou membros CSV UTF-8 para Excel. A importação mostra uma prévia antes de gravar. JSON não contém segredos ou tenant; a logo é transferida por URL. Importar configurações do formulário preserva as chaves Cloudflare já existentes no destino.
+
+Com o addon Membros 0.2.0 ativo, importe CSV de até 1.000 registros/2 MB, utilizando as colunas do arquivo exportado. Código da mesma igreja, CPF ou nome/e-mail/nascimento coincidentes identificam atualizações; IDs externos não são reutilizados. A importação é transacional e não envia convites. Famílias são associadas pelo nome e criadas quando ausentes.
+
+Novos membros ficam pendentes. Em Membros, filtre Pendentes e aprove individualmente ou até 20 por vez. É necessário um e-mail válido e exclusivo para criar o usuário WordPress. A conta recebe apenas erp_membro e uma senha aleatória; o convite não contém essa senha. O usuário define sua senha pelo link nativo do WordPress, com a identidade da igreja no e-mail e na tela de entrada. E-mails de contas existentes não causam vinculação automática nem alteração de privilégios.
+
+O login tenta nome.último-sobrenome, depois os nomes anteriores, ignorando de/da/do/dos/das/e. Caso todas as combinações existam, recebe sufixo numérico. Aprovações repetidas preservam conta e convite; Reenviar convite gera um novo link. O estado enviado indica que wp_mail aceitou o envio, sem comprovar entrega à caixa postal. Falhas ficam visíveis para nova tentativa. O envio usa a configuração de e-mail/SMTP do próprio WordPress.
