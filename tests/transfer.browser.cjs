@@ -50,7 +50,7 @@ function check(value, message) {assert.ok(value, message);checks++;}
     check(mail.message.includes('Igreja Importada no Navegador') && mail.to==='marina-browser@example.org','Convite usa identidade importada e destinatário correto');
     const match=mail.message.match(/href="([^"]*action=rp[^"]*)"/);
     check(Boolean(match),'Convite inclui link de senha');
-    const url=match[1].replaceAll('&amp;','&');
+    const url=match[1].replace(/&amp;|&#0*38;/g,'&');
     const login=new URL(url).searchParams.get('login');
     check(login==='marina.testeconvidado','Login nome e sobrenome');
     const visitor=await browser.newContext();

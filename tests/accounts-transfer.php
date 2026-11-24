@@ -48,6 +48,12 @@ $update = MemberTransfer::preview($local);
 $expect(!is_wp_error($update) && $update['rows'][0]['id'] === (int) $imported->id, 'Atualiza por código da própria igreja');
 $expect(!is_wp_error(MemberTransfer::apply($update)) && Membros::get_by_id((int) $imported->id)->nome_completo === 'Importado Atualizado', 'Atualização CSV preserva identidade');
 $expect(is_wp_error(MemberTransfer::apply($update)), 'Membro modificado após prévia é protegido');
+$rollback_csv = MemberTransfer::csv([['origem_igreja', 'codigo', 'nome_completo', 'email', 'familia'], ['', '', 'Rollback Novo', 'rollback@example.org', 'Família Rollback'], [Settings::tenant_id(), $imported->id, 'Importado Atualizado', 'importado@example.org', '']]);
+$rollback_plan = MemberTransfer::preview($rollback_csv);
+Membros::salvar_membro(['id' => (int) $imported->id, 'nome_social_apelido' => 'Mudou depois da prévia']);
+$expect(is_wp_error(MemberTransfer::apply($rollback_plan)), 'Falha no meio do lote cancela a transação');
+$expect(Membros::listar_membros(['busca' => 'rollback@example.org'])['total'] === 0 && Membros::listar_familias('Família Rollback')['total'] === 0, 'Rollback remove novas pessoas e famílias do lote');
+
 $expect(is_wp_error(MemberTransfer::preview(MemberTransfer::csv([['nome_completo', 'wp_user_id'], ['Intruso', '1']]))), 'Não importa contas nem privilégios');
 $expect(is_wp_error(MemberTransfer::preview(MemberTransfer::csv([$header, ['Repetido', 'r@example.org', 'Visitante', '', ''], ['Repetido', 'r@example.org', 'Visitante', '', '']]))), 'Duplicado no CSV rejeitado');
 $expect(is_wp_error(MemberTransfer::preview(MemberTransfer::csv([['nome_completo', 'data_nascimento'], ['Inválido', '2020-02-30']]))), 'Data inválida rejeitada');

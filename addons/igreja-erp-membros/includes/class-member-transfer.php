@@ -133,7 +133,7 @@ final class MemberTransfer
         try {
             if ($wpdb->query('START TRANSACTION') === false) { return new \WP_Error('transfer_transaction', 'Não foi possível iniciar a importação.'); }
             foreach ($plan['rows'] as $row) {
-                $old = $row['id'] ? Membros::get_by_id($row['id']) : null;
+                $old = $row['id'] ? $wpdb->get_row($wpdb->prepare('SELECT * FROM %i WHERE id = %d FOR UPDATE', Database::table('membros'), $row['id'])) : null;
                 if ($row['id'] && (!$old || !hash_equals($row['hash'], hash('sha256', wp_json_encode($old))))) { throw new \RuntimeException('Um cadastro mudou após a prévia. Envie o arquivo novamente.'); }
                 $data = $row['data'];
                 $data['id'] = $row['id'];
