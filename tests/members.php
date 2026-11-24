@@ -43,6 +43,8 @@ foreach ([['id' => -1], ['id' => []], ['id' => '99999999999999999999'], ['data_n
 }
 $expect(is_wp_error(Membros::salvar_membro(['nome_completo' => 'CPF duplicado', 'cpf' => '52998224725'])), 'CPF duplicado não altera original');
 $expect(is_wp_error(Membros::salvar_membro(['id' => $member, 'nome_completo' => ''])), 'Edição não pode apagar nome obrigatório');
+$expect(is_wp_error(Membros::salvar_membro(['nome_completo' => 'Contato inválido', 'celular_whatsapp' => '------------'])), 'Contato exige números e DDD');
+$expect(is_int(Membros::salvar_membro(['nome_completo' => 'Contato válido', 'celular_whatsapp' => '(41) 99999-1234'])), 'WhatsApp formatado com DDD aceito');
 $expect(is_wp_error(Membros::parse_id('9223372036854775808')), 'Overflow de ID rejeitado sem arredondamento');
 $expect(is_int(Membros::salvar_membro(['nome_completo' => 'Sem CPF 1', 'cpf' => ''])) && is_int(Membros::salvar_membro(['nome_completo' => 'Sem CPF 2', 'cpf' => ''])), 'Vários CPFs ausentes permanecem NULL');
 $expect(Membros::salvar_membro(['id' => $member, 'familia_id' => 0]) === $member && Membros::get_by_id($member)->parentesco === null, 'Desvincular família limpa parentesco');

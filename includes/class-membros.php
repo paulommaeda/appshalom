@@ -173,8 +173,11 @@ final class Membros
         if (!empty($out['email']) && !is_email($out['email'])) {
             return self::error('Informe um e-mail válido.');
         }
-        if (!empty($out['celular_whatsapp']) && !preg_match('/^\+?[0-9 ()-]{8,20}$/D', $out['celular_whatsapp'])) {
-            return self::error('Informe um telefone com DDD.');
+        if (!empty($out['celular_whatsapp'])) {
+            $digits = preg_replace('/\D/', '', $out['celular_whatsapp']);
+            if (!preg_match('/^\+?[0-9 ()-]{8,20}$/D', $out['celular_whatsapp']) || strlen($digits) < 10 || strlen($digits) > 15) {
+                return self::error('Informe um telefone com DDD.');
+            }
         }
         foreach (['sexo' => ['M', 'F'], 'estado_civil' => self::ESTADOS_CIVIS, 'parentesco' => self::PARENTESCOS, 'status' => self::STATUS, 'forma_recepcao' => self::RECEPCAO] as $key => $allowed) {
             if (isset($out[$key]) && !in_array($out[$key], $allowed, true)) {
