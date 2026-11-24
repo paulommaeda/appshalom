@@ -97,8 +97,8 @@ final class Accounts
             if ($wpdb->update(Database::table('membros'), $approval, ['id' => $id]) === false) { return new \WP_Error('approval_save', 'Não foi possível registrar a aprovação.'); }
             $sent = self::invite($user, $member);
             $wpdb->update(Database::table('membros'), ['convite_status' => is_wp_error($sent) ? 'falhou' : 'enviado', 'convite_enviado_em' => is_wp_error($sent) ? null : current_time('mysql')], ['id' => $id]);
+            if (!(int) $member->aprovado) { do_action('igreja_erp_membro_aprovado', $id, (int) $user->ID, get_current_blog_id()); }
             if (is_wp_error($sent)) { return $sent; }
-            do_action('igreja_erp_membro_aprovado', $id, (int) $user->ID, get_current_blog_id());
             return ['user_id' => (int) $user->ID, 'sent' => true, 'message' => 'Membro aprovado e convite enviado ao serviço de e-mail.'];
         } finally { $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock)); }
     }

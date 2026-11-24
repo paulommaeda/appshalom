@@ -59,7 +59,8 @@ $expect(is_wp_error(MemberTransfer::preview(MemberTransfer::csv([$header, ['Repe
 $expect(is_wp_error(MemberTransfer::preview(MemberTransfer::csv([['nome_completo', 'data_nascimento'], ['Inválido', '2020-02-30']]))), 'Data inválida rejeitada');
 $expect(str_contains(MemberTransfer::csv([['=formula']]), "'=formula"), 'Exportação neutraliza fórmula de planilha');
 
-$mail = []; $mail_ok = true;
+$mail = []; $mail_ok = true; $approval_events = 0;
+add_action('igreja_erp_membro_aprovado', static function () use (&$approval_events) { ++$approval_events; });
 $mock_mail = static function ($pre, $atts) use (&$mail, &$mail_ok) { $mail[] = $atts; return $mail_ok; };
 add_filter('pre_wp_mail', $mock_mail, 10, 2);
 $one = Membros::salvar_membro(['nome_completo' => 'João Pedro Silvaconvite', 'email' => 'one@example.org']);
@@ -81,12 +82,14 @@ $expect(!is_wp_error(check_password_reset_key($query['key'], $query['login'])), 
 $expect(!str_contains(wp_json_encode(Membros::get_by_id($one)), $query['key']), 'Token não é gravado no membro');
 $expect(!is_wp_error(Accounts::approve($one, true)) && count($mail) === 4, 'Reenvio explícito');
 $expect(is_wp_error(check_password_reset_key($query['key'], $query['login'])), 'Reenvio invalida link anterior');
+$expect($approval_events === 3, 'Reenvio não repete o evento de aprovação');
 $mail_ok = false;
 $failed = Membros::salvar_membro(['nome_completo' => 'Convite Falhou', 'email' => 'falhou@example.org']);
 $expect(is_wp_error(Accounts::approve($failed)), 'Falha no transporte é exibida');
 $expect((int) Membros::get_by_id($failed)->aprovado === 1 && Membros::get_by_id($failed)->convite_status === 'falhou', 'Falha preserva aprovação e registra pendência');
 $mail_ok = true;
 $expect(!is_wp_error(Accounts::approve($failed)) && Membros::get_by_id($failed)->convite_status === 'enviado', 'Repetir após falha usa a mesma conta');
+$expect($approval_events === 4, 'Falha de e-mail não duplica nem elimina o evento de aprovação');
 $no_email = Membros::salvar_membro(['nome_completo' => 'Sem Email']);
 $expect(is_wp_error(Accounts::approve($no_email)) && Membros::get_by_id($no_email)->wp_user_id === null, 'Sem e-mail não cria conta');
 $existing = Membros::salvar_membro(['nome_completo' => 'Outro com Email', 'email' => 'one@example.org']);
@@ -96,7 +99,20 @@ $protected = Membros::salvar_membro(['nome_completo' => 'Admin Protegido', 'wp_u
 $expect(is_wp_error(Accounts::approve($protected, true)), 'Não redefine acesso de administrador');
 wp_set_current_user(get_user_by('login', 'erp_brand_member')->ID);
 $expect(is_wp_error(Accounts::approve($no_email)) && is_wp_error(MemberTransfer::preview($csv)), 'Membro comum não aprova nem importa');
+$expect(is_wp_error(Transfer::export_settings()) && is_wp_error(Transfer::apply_settings([])), 'Membro comum não transfere configurações');
 wp_set_current_user($admin);
+if (is_multisite()) {
+    $site_b = get_site_by_path(get_network()->domain, '/igreja-b/')->blog_id;
+    switch_to_blog($site_b);
+    try {
+        $b_member = Membros::salvar_membro(['nome_completo' => 'Ana Carla Igrejaconvite', 'email' => 'igreja-b-convite@example.org']);
+        $b_result = Accounts::approve($b_member);
+        $expect(!is_wp_error($b_result), 'Aprovar membro da igreja B');
+        $b_mail = end($mail);
+        $expect(str_contains($b_mail['message'], Settings::get('nome_curto')) && str_contains($b_mail['message'], '/igreja-b/wp-login.php'), 'Convite usa identidade e URL da igreja B');
+        $expect(is_user_member_of_blog($b_result['user_id'], $site_b), 'Conta vinculada à igreja B');
+    } finally { restore_current_blog(); }
+}
 remove_filter('pre_wp_mail', $mock_mail);
 
 // Browser-only mail sink; the production ZIP never contains this fixture.
