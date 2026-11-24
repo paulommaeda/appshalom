@@ -56,8 +56,12 @@ function check(value, message) {assert.ok(value, message);checks++;}
     const visitor=await browser.newContext();
     const reset=await visitor.newPage();
     await reset.goto(url);
+    // Native WP initializes a generated password after its strength library loads.
+    // Wait for that initialization so it cannot replace the test's typed password.
+    await reset.waitForFunction(() => document.querySelector('#pass-strength-result')?.classList.contains('strong'));
     await reset.locator('#pass1').fill('Marina-CI-Senha-Nova-493!');
     await Promise.all([reset.waitForNavigation(),reset.locator('#wp-submit').click()]);
+    check(await reset.locator('#resetpassform').count() === 0, 'WordPress confirmou a definição da senha');
     await reset.goto(base+'/wp-login.php');
     await reset.locator('#user_login').fill(login);
     await reset.locator('#user_pass').fill('Marina-CI-Senha-Nova-493!');
