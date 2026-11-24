@@ -1,8 +1,9 @@
 /* Search current-site families through an authenticated, nonce-protected endpoint. */
 (() => {
   'use strict';
+  function initialize() {
   const search = document.getElementById('igreja-family-search');
-  if (!search) return;
+  if (!search || search.dataset.igrejaReady) return;
   const results = document.getElementById('igreja-family-results');
   const chosen = document.getElementById('igreja-family-selected');
   const id = document.getElementById('igreja-family-id');
@@ -51,4 +52,11 @@
     ++generation;
     if (controller) controller.abort();
   });
+  search.dataset.igrejaReady = '1';
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, {once: true});
+  } else {
+    initialize();
+  }
 })();

@@ -7,6 +7,7 @@ function check(value, message) { assert.ok(value, message); checks++; }
 async function login(browser, user, path) {
   const context = await browser.newContext({viewport: {width: 390, height: 844}});
   const page = await context.newPage();
+  page.on('pageerror', error => console.error('Browser script:', error.message));
   await page.goto(base + '/wp-login.php?redirect_to=' + encodeURIComponent(base + path));
   await page.locator('#user_login').fill(user);
   await page.locator('#user_pass').fill('IgErp-CI-123!x');
@@ -67,6 +68,7 @@ async function login(browser, user, path) {
     check(await page.locator('tbody tr').count() === 1 && (await page.locator('tbody').textContent()).includes('Visitante Navegador'), 'Busca e filtro encontram cadastro público');
     await page.locator('tbody').getByRole('link', {name: 'Editar', exact: true}).click();
     await page.locator('[name="membro[status]"]').selectOption('Membro Ativo');
+    await page.waitForFunction(() => document.getElementById('igreja-family-search')?.dataset.igrejaReady === '1');
     await page.locator('#igreja-family-search').fill('Família Navegador');
     await page.locator('#igreja-family-results').getByRole('button', {name: 'Família Navegador', exact: true}).click();
     await page.locator('[name="membro[parentesco]"]').selectOption('Titular');
